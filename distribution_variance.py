@@ -72,7 +72,7 @@ def confidence_ellipse(x, y, ax, n_std=2.0, facecolor='none', **kwargs):
     ax.add_patch(ell)
 
 
-def run_pcoa(data, group_col, seed=data_utils.PROJECT_SEED, distance_matrix=None, pcoa_pairs=None):
+def run_pcoa(data, group_col, seed=data_utils.PROJECT_SEED, distance_matrix=None, pcoa_pairs=None, subtitle=None):
     if distance_matrix is None:
         distance_matrix = beta_diversity(metric="braycurtis", counts=data.values, ids=data.index)
 
@@ -91,7 +91,8 @@ def run_pcoa(data, group_col, seed=data_utils.PROJECT_SEED, distance_matrix=None
             plt.plot([mod[i, 0], mod[j, 0]], [mod[i, 1], mod[j, 1]], alpha=0.75, color='grey')
 
     plt.legend(title=group_col.name)
-    plt.title("PCoA of OTU Relative Abundance")
+    plt.suptitle("PCoA of OTU Relative Abundance")
+    plt.title(subtitle, fontsize=10)
     plt.show()
 
 
@@ -100,10 +101,11 @@ def show_variance(data, group_col_name, should_run_pcoa=True, pcoa_pairs=None):
     distance_matrix = beta_diversity(metric="braycurtis", counts=otu_data.values, ids=otu_data.index)
     permanova_results = get_permanova_results(otu_data, data[group_col_name], distance_matrix=distance_matrix)
     print(f"PERMANOVA results:\n{permanova_results}\n")
+    subtitle = f"PERMANOVA pvalue = {permanova_results['p-value']:.3f}"
 
     # it's slow... so optional
     if should_run_pcoa:
-        run_pcoa(otu_data, data[group_col_name], distance_matrix=distance_matrix, pcoa_pairs=pcoa_pairs)
+        run_pcoa(otu_data, data[group_col_name], distance_matrix=distance_matrix, pcoa_pairs=pcoa_pairs, subtitle=subtitle)
 
 
 def main():
