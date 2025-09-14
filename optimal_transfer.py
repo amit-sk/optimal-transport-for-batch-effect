@@ -48,7 +48,7 @@ def sanity_check():
     pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_orig','_noisy'))) for i in indexes if i.endswith('_orig')]
 
     # show variance before alignment
-    # distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
+    distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
     fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, noisy_otu_data.values)
 
     # transport
@@ -63,19 +63,19 @@ def sanity_check():
     projected['dataset'] = 'projected'
     projected['phenotype'] = noisy_data['phenotype']
 
-    # TODO: create combined data with projected data and show variance
+    # comapre projection and noisy (before and after transport)
     combined_data = pd.concat([noisy_data, projected])
     combined_data.set_index('sample_id', inplace=True)
     indexes = combined_data.index
     pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_noisy','_projected'))) for i in indexes if i.endswith('_noisy')]
-    # distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
+    distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
 
-    # how much each projection had moved
+    # how much each projection had moved - compare orig, noisy, projected
     combined_data = pd.concat([risk_data, noisy_data, projected])
     combined_data.set_index('sample_id', inplace=True)
     indexes = combined_data.index
     pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_noisy','_projected'))) for i in indexes if i.endswith('_noisy')]
-    pairs.append([(indexes.get_loc(i), indexes.get_loc(i.replace('_noisy','_orig'))) for i in indexes if i.endswith('_noisy')])
+    pairs.extend([(indexes.get_loc(i), indexes.get_loc(i.replace('_noisy','_orig'))) for i in indexes if i.endswith('_noisy')])
     distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
 
     print("Done.")
@@ -86,8 +86,6 @@ def main():
     # mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
     # mucosalibd_otu_data = mucosalibd_data[data_utils.get_otu_columns(mucosalibd_data)]
     # mucosalibd_distance_matrix = squareform(pdist(mucosalibd_otu_data.values, metric='braycurtis'))
-
-    pass
 
 
 if __name__ == "__main__":
