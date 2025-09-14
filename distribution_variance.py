@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import patches
 from scipy.spatial.distance import pdist, squareform
 from skbio.diversity import beta_diversity
 from sklearn.preprocessing import StandardScaler
@@ -55,54 +56,34 @@ def calc_domain_avg_FOSCTTM(x1_mat, x2_mat):
 	return fracs
 
 
-def confidence_ellipse(x, y, ax, n_std=3.0, facecolor='none', **kwargs):
+def confidence_ellipse(x, y, ax, n_std=2.0, facecolor='none', **kwargs):
     """
-    Code from https://matplotlib.org/stable/gallery/statistics/confidence_ellipse.html
-    Create a plot of the covariance confidence ellipse of *x* and *y*.
-
+    Add a covariance confidence ellipse to an Axes.
     Parameters
     ----------
-    x, y : array-like, shape (n, )
-        Input data.
-
-    ax : matplotlib.axes.Axes
-        The Axes object to draw the ellipse into.
-
+    x, y : arrays
+        The data points.
+    ax : matplotlib Axes
+        The Axes object to draw into.
     n_std : float
-        The number of standard deviations to determine the ellipse's radiuses.
-
-    **kwargs
-        Forwarded to `~matplotlib.patches.Ellipse`
-
-    Returns
-    -------
-    matplotlib.patches.Ellipse
+        Number of standard deviations (2 ≈ 95%, 3 ≈ 99.7%).
     """
     if x.size != y.size:
         raise ValueError("x and y must be the same size")
 
     cov = np.cov(x, y)
-    pearson = cov[0, 1]/np.sqrt(cov[0, 0] * cov[1, 1])
-    # Using a special case to obtain the eigenvalues of this
-    # two-dimensional dataset.
-    ell_radius_x = np.sqrt(1 + pearson)
-    ell_radius_y = np.sqrt(1 - pearson)
-    ellipse = patches.Ellipse((0, 0), width=ell_radius_x * 2, height=ell_radius_y * 2, facecolor=facecolor, **kwargs)
+    vals, vecs = np.linalg.eigh(cov)
+    order = vals.argsort()[::-1]
+    vals, vecs = vals[order], vecs[:, order]
+    theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
 
-    # Calculating the standard deviation of x from
-    # the squareroot of the variance and multiplying
-    # with the given number of standard deviations.
-    scale_x = np.sqrt(cov[0, 0]) * n_std
-    mean_x = np.mean(x)
+    # Width and height of ellipse = 2 * n_std * sqrt(eigenvalues)
+    width, height = 2 * n_std * np.sqrt(vals)
+    mean_x, mean_y = np.mean(x), np.mean(y)
 
-    # calculating the standard deviation of y ...
-    scale_y = np.sqrt(cov[1, 1]) * n_std
-    mean_y = np.mean(y)
-
-    transf = transforms.Affine2D().rotate_deg(45).scale(scale_x, scale_y).translate(mean_x, mean_y)
-
-    ellipse.set_transform(transf + ax.transData)
-    return ax.add_patch(ellipse)
+    ell = patches.Ellipse((mean_x, mean_y), width, height, angle=theta,
+                  facecolor=facecolor, **kwargs)
+    ax.add_patch(ell)
 
 
 def run_pcoa(data, group_col, seed=data_utils.PROJECT_SEED, distance_matrix=None, pcoa_pairs=None):
@@ -111,12 +92,13 @@ def run_pcoa(data, group_col, seed=data_utils.PROJECT_SEED, distance_matrix=None
 
     ordination_results = pcoa(distance_matrix, seed=seed)
     mod = ordination_results.samples.iloc[:, :2].values
-    # distance_matrix = squareform(pdist(data.values, metric='braycurtis'))
-    # mod = MDS(n_components=2, dissimilarity="precomputed", random_state=seed).fit_transform(distance_matrix)
 
+    colors = plt.get_cmap("tab10")
     for group in np.unique(group_col):
         idx = (group_col == group)
-        plt.scatter(mod[idx, 0], mod[idx, 1], label=group, alpha=0.75)
+        color = colors(np.unique(group_col).tolist().index(group) % 10)
+        confidence_ellipse(mod[idx, 0], mod[idx, 1], plt.gca(), edgecolor='black', alpha=0.2, facecolor=color)
+        plt.scatter(mod[idx, 0], mod[idx, 1], label=group, alpha=0.75, color=color)
 
     if pcoa_pairs is not None:
         for i, j in pcoa_pairs:
@@ -142,7 +124,7 @@ def main():
     # risk data
     print("RISK data:")
     risk_data = pd.read_csv("risk_data.csv")
-    show_variance(risk_data, 'phenotype', should_run_pcoa=True)
+    show_variance(risk_data, 'phenotype', should_run_pcoa=False)
 
     # mucosalibd data
     print("MucosalIBD data:")
