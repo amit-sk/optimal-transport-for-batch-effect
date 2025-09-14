@@ -7,21 +7,30 @@ import data_utils
 import distribution_variance
 
 
-def barycentric_projection(coupling, src_dataset, x_onto_y=True):
-    """ Based on code from SCOTv1 """
+def barycentric_projection(coupling, target_dataset, x_onto_y=True):
+    """
+    Based on code from SCOTv1.
+    Uses the coupling matrix and the target dataset to create the projection of the src dataset onto the other domain.
+    """
     if type(coupling) is not pd.DataFrame:
         coupling = pd.DataFrame(coupling)
-    if type(src_dataset) is not pd.DataFrame:
-        src_dataset = pd.DataFrame(src_dataset)
+    if type(target_dataset) is not pd.DataFrame:
+        target_dataset = pd.DataFrame(target_dataset)
     
     if x_onto_y:
         # Projecting the first domain onto the second domain
+        if target_dataset.shape[0] != coupling.shape[1]:
+            raise ValueError("target_dataset rows must match coupling columns. did you mean to set x_onto_y=False?")
+
         weights = coupling.sum(axis=1)
-        src_aligned = (coupling @ src_dataset) / weights.values[:, None]
+        src_aligned = (coupling @ target_dataset) / weights.values[:, None]
     else:
         # Projecting the second domain onto the first domain
+        if target_dataset.shape[0] != coupling.shape[0]:
+            raise ValueError("target_dataset rows must match coupling rows. did you mean to set x_onto_y=True?")
+
         weights = coupling.sum(axis=0)
-        src_aligned = (coupling.T @ src_dataset) / weights.values[:, None]
+        src_aligned = (coupling.T @ target_dataset) / weights.values[:, None]
 
     return src_aligned
 
@@ -41,7 +50,6 @@ def sanity_check():
     risk_data['sample_id'] = risk_data['sample_id'] + '_orig'
     noisy_data['dataset'] = 'noisy'
     noisy_data['sample_id'] = noisy_data['sample_id'] + '_noisy'
-    noisy_data['dataset'] = 'noisy'
     combined_data = pd.concat([risk_data, noisy_data])
     combined_data.set_index('sample_id', inplace=True)
     indexes = combined_data.index
@@ -60,7 +68,7 @@ def sanity_check():
     print(f'GW distance: {gw_distance}')
     print(f'coupling diagonal sum: {coupling.diagonal().sum()}')
 
-    projected = barycentric_projection(coupling, noisy_otu_data, x_onto_y=False)
+    projected = barycentric_projection(coupling, risk_otu_data, x_onto_y=False)
     fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, projected.values, should_use_braycurtis=True)
     print(f"Average FOSCTTM score between projected and original (post transport): {fracs.mean()}")
 
@@ -68,7 +76,7 @@ def sanity_check():
     projected['dataset'] = 'projected'
     projected['phenotype'] = noisy_data['phenotype']
 
-    # comapre projection and original (post transport)
+    # compare projection and original (post transport)
     print("\nComparing variance between original and projected:")
     combined_data = pd.concat([risk_data, projected])
     combined_data.set_index('sample_id', inplace=True)
@@ -76,7 +84,7 @@ def sanity_check():
     pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_orig','_projected'))) for i in indexes if i.endswith('_orig')]
     distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
 
-    # comapre projection and noisy (before and after transport)
+    # compare projection and noisy (before and after transport)
     print("\nComparing variance between noisy and projected:")
     combined_data = pd.concat([noisy_data, projected])
     combined_data.set_index('sample_id', inplace=True)
