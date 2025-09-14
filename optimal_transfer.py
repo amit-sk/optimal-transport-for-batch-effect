@@ -103,12 +103,71 @@ def sanity_check():
 
     print("Done.")
 
-def main():
-    sanity_check()
 
-    # mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
-    # mucosalibd_otu_data = mucosalibd_data[data_utils.get_otu_columns(mucosalibd_data)]
-    # mucosalibd_distance_matrix = squareform(pdist(mucosalibd_otu_data.values, metric='braycurtis'))
+def transport_test():
+    risk_data = pd.read_csv("risk_data.csv")
+    risk_otu_data = risk_data[data_utils.get_otu_columns(risk_data)]
+    risk_distance_matrix = squareform(pdist(risk_otu_data.values, metric='braycurtis'))
+
+    mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
+    mucosalibd_otu_data = mucosalibd_data[data_utils.get_otu_columns(mucosalibd_data)]
+    mucosalibd_distance_matrix = squareform(pdist(mucosalibd_otu_data.values, metric='braycurtis'))
+
+    # create combined data
+    risk_data['dataset'] = 'risk'
+    risk_data['sample_id'] = risk_data['sample_id'] + '_risk'
+    mucosalibd_data['dataset'] = 'mucosalibd'
+    mucosalibd_data['sample_id'] = mucosalibd_data['sample_id'] + '_mucosalibd'
+    combined_data = pd.concat([risk_data, mucosalibd_data])
+    combined_data.fillna(0.0, inplace=True)
+    combined_data.set_index('sample_id', inplace=True)
+
+    # show variance before alignment
+    print("\nComparing variance between risk and mucosalibd (before alignment):")
+    distribution_variance.show_variance(combined_data, 'dataset', should_run_pcoa=False)
+
+    # transport
+    print("\nRunning GW transport...")
+    coupling, log = ot.gromov.gromov_wasserstein(risk_distance_matrix, mucosalibd_distance_matrix, verbose=False, log=True)
+    gw_distance = log['gw_dist']
+    print(f'GW distance: {gw_distance}')
+
+    projected = barycentric_projection(coupling, risk_otu_data, x_onto_y=False)
+    projected['sample_id'] = mucosalibd_data['sample_id'].str.replace('_mucosalibd','_projected')
+    projected['dataset'] = 'projected'
+    projected['phenotype'] = mucosalibd_data['phenotype']
+
+    # compare projection and risk (post transport)
+    print("\nComparing variance between risk and projected:")
+    combined_data = pd.concat([risk_data, projected])
+    # combined_data = pd.concat([risk_data[risk_data.phenotype == 'control'], projected[risk_data.phenotype == 'control']])
+    combined_data.set_index('sample_id', inplace=True)
+    distribution_variance.show_variance(combined_data, 'dataset')
+
+    # compare projection and mucosalibd (before and after transport)
+    print("\nComparing variance between mucosalibd (original) and projected:")
+    combined_data = pd.concat([mucosalibd_data, projected])
+    combined_data.fillna(0.0, inplace=True)
+    combined_data.set_index('sample_id', inplace=True)
+    indexes = combined_data.index
+    pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_mucosalibd','_projected'))) for i in indexes if i.endswith('_mucosalibd')]
+    distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
+
+    # how much each projection had moved - compare risk, mucosalibd, projected
+    print("\nComparing variance between risk, mucosalibd and projected:")
+    combined_data = pd.concat([risk_data, mucosalibd_data, projected])
+    combined_data.fillna(0.0, inplace=True)
+    combined_data.set_index('sample_id', inplace=True)
+    indexes = combined_data.index
+    pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_mucosalibd','_projected'))) for i in indexes if i.endswith('_mucosalibd')]
+    distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
+
+    print("Done.")
+
+
+def main():
+    # sanity_check()
+    transport_test()
 
 
 if __name__ == "__main__":
