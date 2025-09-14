@@ -22,38 +22,38 @@ def get_permanova_results(data, group_col, distance_matrix=None):
 
 
 def calc_frac_idx(x1_mat ,x2_mat):
-	"""
+    """
     Based on code from SCOTv1.
-	Returns fraction closer than true match for each sample (as an array).
-	"""
-	fracs = []
-	nsamp = x1_mat.shape[0]
-	rank = 0
+    Returns fraction closer than true match for each sample (as an array).
+    """
+    fracs = []
+    nsamp = x1_mat.shape[0]
+    rank = 0
 
-	for row_idx in range(nsamp):
-		euc_dist = np.sqrt(np.sum(np.square(np.subtract(x1_mat[row_idx,:], x2_mat)), axis=1))
-		true_nbr = euc_dist[row_idx]
-		sort_euc_dist = sorted(euc_dist)
-		rank =sort_euc_dist.index(true_nbr)
-		frac = float(rank)/(nsamp -1)
+    for row_idx in range(nsamp):
+        euc_dist = np.sqrt(np.sum(np.square(np.subtract(x1_mat[row_idx,:], x2_mat)), axis=1))
+        true_nbr = euc_dist[row_idx]
+        sort_euc_dist = sorted(euc_dist)
+        rank =sort_euc_dist.index(true_nbr)
+        frac = float(rank)/(nsamp -1)
 
-		fracs.append(frac)
+        fracs.append(frac)
 
-	return fracs
+    return fracs
 
 def calc_domain_avg_FOSCTTM(x1_mat, x2_mat):
-	"""
+    """
     Based on code from SCOTv1.
-	Outputs average FOSCTTM measure (averaged over both domains)
-	Get the fraction matched for all data points in both directions
-	Averages the fractions in both directions for each data point
-	"""
-	fracs1 = calc_frac_idx(x1_mat, x2_mat)
-	fracs2 = calc_frac_idx(x2_mat, x1_mat)
-	fracs = []
-	for i in range(len(fracs1)):
-		fracs.append((fracs1[i] + fracs2[i]) / 2)  
-	return fracs
+    Outputs average FOSCTTM measure (averaged over both domains)
+    Get the fraction matched for all data points in both directions
+    Averages the fractions in both directions for each data point
+    """
+    fracs1 = calc_frac_idx(x1_mat, x2_mat)
+    fracs2 = calc_frac_idx(x2_mat, x1_mat)
+    fracs = []
+    for i in range(len(fracs1)):
+        fracs.append((fracs1[i] + fracs2[i]) / 2)  
+    return fracs
 
 
 def confidence_ellipse(x, y, ax, n_std=2.0, facecolor='none', **kwargs):
