@@ -2,11 +2,8 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial import distance
 from skbio.diversity import beta_diversity
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.manifold import MDS
 from skbio.stats.distance import permanova
 from skbio.stats.ordination import pcoa
 
@@ -21,39 +18,28 @@ def get_permanova_results(data, group_col, distance_matrix=None):
     return permanova_results
 
 
-def calc_frac_idx(x1_mat ,x2_mat):
+def calc_frac_idx(x1_mat ,x2_mat, should_use_braycurtis=False):
     """
-    Based on code from SCOTv1.
-    Returns fraction closer than true match for each sample (as an array).
+    Returns fraction closer than true match for each sample (as an ndarray).
     """
-    fracs = []
-    nsamp = x1_mat.shape[0]
-    rank = 0
+    metric = 'braycurtis' if should_use_braycurtis else 'euclidean'
+    distances = distance.cdist(x1_mat, x2_mat, metric=metric)
+    true_d = distances.diagonal()
+    closer_x1 = (distances < true_d[:, None]).sum(axis=1)
+    closer_x2 = (distances < true_d[None, :]).sum(axis=0)
+    fracs_x1 = closer_x1 / (x1_mat.shape[0] - 1)
+    fracs_x2 = closer_x2 / (x2_mat.shape[0] - 1)
+    return fracs_x1, fracs_x2
 
-    for row_idx in range(nsamp):
-        euc_dist = np.sqrt(np.sum(np.square(np.subtract(x1_mat[row_idx,:], x2_mat)), axis=1))
-        true_nbr = euc_dist[row_idx]
-        sort_euc_dist = sorted(euc_dist)
-        rank =sort_euc_dist.index(true_nbr)
-        frac = float(rank)/(nsamp -1)
 
-        fracs.append(frac)
-
-    return fracs
-
-def calc_domain_avg_FOSCTTM(x1_mat, x2_mat):
+def calc_domain_avg_FOSCTTM(x1_mat, x2_mat, should_use_braycurtis=False):
     """
     Based on code from SCOTv1.
     Outputs average FOSCTTM measure (averaged over both domains)
-    Get the fraction matched for all data points in both directions
     Averages the fractions in both directions for each data point
     """
-    fracs1 = calc_frac_idx(x1_mat, x2_mat)
-    fracs2 = calc_frac_idx(x2_mat, x1_mat)
-    fracs = []
-    for i in range(len(fracs1)):
-        fracs.append((fracs1[i] + fracs2[i]) / 2)  
-    return fracs
+    fracs_x1, fracs_x2 = calc_frac_idx(x1_mat, x2_mat, should_use_braycurtis=should_use_braycurtis)
+    return (fracs_x1 + fracs_x2) / 2
 
 
 def confidence_ellipse(x, y, ax, n_std=2.0, facecolor='none', **kwargs):

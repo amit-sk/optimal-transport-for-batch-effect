@@ -31,7 +31,7 @@ def sanity_check():
     risk_otu_data = risk_data[data_utils.get_otu_columns(risk_data)]
     risk_distance_matrix = squareform(pdist(risk_otu_data.values, metric='braycurtis'))
 
-    noisy_data = data_utils.create_noisy_data(risk_data, proportion_of_std=0.05)
+    noisy_data = data_utils.create_noisy_data(risk_data, proportion_of_std=0.1)
     noisy_data = data_utils.renormalize_data(noisy_data)
     noisy_otu_data = noisy_data[data_utils.get_otu_columns(noisy_data)]
     noisy_distance_matrix = squareform(pdist(noisy_otu_data.values, metric='braycurtis'))
@@ -48,22 +48,36 @@ def sanity_check():
     pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_orig','_noisy'))) for i in indexes if i.endswith('_orig')]
 
     # show variance before alignment
-    distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
-    fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, noisy_otu_data.values)
+    print("\nComparing variance between original and noisy (before alignment):")
+    distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=False)
+    fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, noisy_otu_data.values, should_use_braycurtis=True)
+    print(f"Average FOSCTTM score between noisy and original: {fracs.mean()}")
 
     # transport
-    coupling, log = ot.gromov.gromov_wasserstein(risk_distance_matrix, noisy_distance_matrix, verbose=True, log=True)
+    print("\nRunning GW transport...")
+    coupling, log = ot.gromov.gromov_wasserstein(risk_distance_matrix, noisy_distance_matrix, verbose=False, log=True)
     gw_distance = log['gw_dist']
     print(f'GW distance: {gw_distance}')
+    print(f'coupling diagonal sum: {coupling.diagonal().sum()}')
 
     projected = barycentric_projection(coupling, noisy_otu_data, x_onto_y=False)
-    fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, projected.values)
-    
+    fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, projected.values, should_use_braycurtis=True)
+    print(f"Average FOSCTTM score between projected and original (post transport): {fracs.mean()}")
+
     projected['sample_id'] = noisy_data['sample_id'].str.replace('_noisy','_projected')
     projected['dataset'] = 'projected'
     projected['phenotype'] = noisy_data['phenotype']
 
+    # comapre projection and original (post transport)
+    print("\nComparing variance between original and projected:")
+    combined_data = pd.concat([risk_data, projected])
+    combined_data.set_index('sample_id', inplace=True)
+    indexes = combined_data.index
+    pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_orig','_projected'))) for i in indexes if i.endswith('_orig')]
+    distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
+
     # comapre projection and noisy (before and after transport)
+    print("\nComparing variance between noisy and projected:")
     combined_data = pd.concat([noisy_data, projected])
     combined_data.set_index('sample_id', inplace=True)
     indexes = combined_data.index
@@ -71,6 +85,7 @@ def sanity_check():
     distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
 
     # how much each projection had moved - compare orig, noisy, projected
+    print("\nComparing variance between original, noisy and projected:")
     combined_data = pd.concat([risk_data, noisy_data, projected])
     combined_data.set_index('sample_id', inplace=True)
     indexes = combined_data.index
