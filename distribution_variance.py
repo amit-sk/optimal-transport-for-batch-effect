@@ -42,6 +42,22 @@ def calc_domain_avg_FOSCTTM(x1_mat, x2_mat, should_use_braycurtis=False):
     return (fracs_x1 + fracs_x2) / 2
 
 
+def heatmap(data, row_labels, col_labels, **kwargs):
+    ax = plt.gca()
+    im = ax.imshow(data, aspect='auto', **kwargs)
+    plt.colorbar(im, ax=ax)
+    ax.set_xticks(range(data.shape[1]), labels=col_labels, rotation=-90, ha="right", rotation_mode="anchor")
+    ax.set_yticks(range(data.shape[0]), labels=row_labels)
+    ax.spines[:].set_visible(False)
+    ax.set_xticks(np.arange(data.shape[1]+1)-.5, minor=True)
+    ax.set_yticks(np.arange(data.shape[0]+1)-.5, minor=True)
+    ax.grid(which="minor", color="w", linestyle='-', linewidth=3)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    plt.tight_layout()
+    plt.show()
+
+
 def confidence_ellipse(x, y, ax, n_std=2.0, facecolor='none', **kwargs):
     """
     Add a covariance confidence ellipse to an Axes.
