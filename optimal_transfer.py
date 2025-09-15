@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
-from scipy.spatial.distance import pdist, squareform
 import ot
+from sklearn.ensemble import RandomForestClassifier
+from scipy.spatial.distance import pdist, squareform
 
 import data_utils
 import distribution_variance
@@ -33,6 +34,44 @@ def barycentric_projection(coupling, target_dataset, x_onto_y=True):
         src_aligned = (coupling.T @ target_dataset) / weights.values[:, None]
 
     return src_aligned
+
+
+def test_signal(source_dataset, target_dataset, projection):
+    source_dataset = source_dataset.copy()
+    target_dataset = target_dataset.copy()
+    projection = projection.copy()
+
+    source_dataset['dataset'] = 'source'
+    target_dataset['dataset'] = 'target'
+    projection['dataset'] = 'projection'
+
+    combined = pd.concat([source_dataset, target_dataset, projection])
+    combined.fillna(0.0, inplace=True)
+    combined.set_index('sample_id', inplace=True)
+
+    source_dataset = combined[combined['dataset'] == 'source']
+    target_dataset = combined[combined['dataset'] == 'target']
+    projection = combined[combined['dataset'] == 'projection']
+
+    source_data = source_dataset[data_utils.get_otu_columns(source_dataset)]
+    source_phenotype = source_dataset['phenotype']
+    target_data = target_dataset[data_utils.get_otu_columns(target_dataset)]
+    target_phenotype = target_dataset['phenotype']
+    projection_data = projection[data_utils.get_otu_columns(projection)]
+    projection_phenotype = projection['phenotype']
+
+    classifier = RandomForestClassifier(random_state=data_utils.PROJECT_SEED)
+    classifier.fit(target_data, target_phenotype)
+
+    # show results on source data before transport
+    source_pred = classifier.predict(source_data)
+    source_acc = (source_pred == source_phenotype).mean()
+    print(f"Accuracy on source data before transport: {source_acc:.3f}")
+
+    # show results on projection data after transport
+    projection_pred = classifier.predict(projection_data)
+    projection_acc = (projection_pred == projection_phenotype).mean()
+    print(f"Accuracy on projection data after transport: {projection_acc:.3f}")
 
 
 def sanity_check():
@@ -101,6 +140,7 @@ def sanity_check():
     pairs.extend([(indexes.get_loc(i), indexes.get_loc(i.replace('_noisy','_orig'))) for i in indexes if i.endswith('_noisy')])
     distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
 
+    test_signal(risk_data, noisy_data, projected)
     print("Done.")
 
 
@@ -218,6 +258,7 @@ def transport_test():
     projected['phenotype'] = mucosalibd_data['phenotype']
 
     _compare_datasets_post_transport(risk_data, mucosalibd_data, projected)
+    test_signal(risk_data, mucosalibd_data, projected)
 
     print("\nDone.")
 
