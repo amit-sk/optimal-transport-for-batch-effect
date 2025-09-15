@@ -104,7 +104,7 @@ def sanity_check():
     print("Done.")
 
 
-def _observe_coupling_matrix(coupling, src_data, tgt_data):
+def _observe_coupling_matrix(coupling, risk_data, mucosalibd_data):
     import matplotlib.pyplot as plt
     d_all = {}
     c = pd.DataFrame(coupling) * 132  # sum of columns will be 1, sum of all columns will be 132
@@ -126,7 +126,9 @@ def _observe_coupling_matrix(coupling, src_data, tgt_data):
     plt.title("Histogram of coupling matrix values (non-zero only)")
     plt.show()
 
-    distribution_variance.heatmap(coupling, tgt_data['sample_id'], src_data['sample_id'], cmap='Blues')
+    distribution_variance.heatmap(coupling, risk_data['sample_id'], mucosalibd_data['sample_id'], cmap='Blues')
+
+    # show spread - how many *unique* values in distribution
     spread_of_src = pd.DataFrame(coupling).nunique(axis=0)
     plt.hist(spread_of_src, bins=12)
     plt.title("Spread of each sample in src dataset (mucosalibd) in coupling matrix")
@@ -138,16 +140,7 @@ def _observe_coupling_matrix(coupling, src_data, tgt_data):
     plt.show()
 
 
-def transport_test():
-    # obtain data
-    risk_data = pd.read_csv("risk_data.csv")
-    risk_otu_data = risk_data[data_utils.get_otu_columns(risk_data)]
-    risk_distance_matrix = squareform(pdist(risk_otu_data.values, metric='braycurtis'))
-
-    mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
-    mucosalibd_otu_data = mucosalibd_data[data_utils.get_otu_columns(mucosalibd_data)]
-    mucosalibd_distance_matrix = squareform(pdist(mucosalibd_otu_data.values, metric='braycurtis'))
-
+def _compare_datasets_pre_transport(risk_data, mucosalibd_data):
     # create combined data (to show variance before alignment)
     risk_data['dataset'] = 'risk'
     risk_data['sample_id'] = risk_data['sample_id'] + '_risk'
@@ -159,24 +152,11 @@ def transport_test():
 
     # show variance before alignment
     print("\nComparing variance between risk and mucosalibd (before alignment):")
-    distribution_variance.show_variance(combined_data, 'dataset', should_run_pcoa=False)
+    distribution_variance.show_variance(combined_data, 'dataset')
     distribution_variance.show_variance(combined_data, 'phenotype')
 
-    # transport
-    print("\nRunning GW transport...")
-    coupling, log = ot.gromov.gromov_wasserstein(risk_distance_matrix, mucosalibd_distance_matrix, verbose=False, log=True)
-    gw_distance = log['gw_dist']
-    print(f'GW distance: {gw_distance}')
 
-    # check spread of coupling matrix
-    _observe_coupling_matrix(coupling, risk_data, mucosalibd_data)
-
-    # project mucosalibd onto risk (transport results)
-    projected = barycentric_projection(coupling, risk_otu_data, x_onto_y=False)
-    projected['sample_id'] = mucosalibd_data['sample_id'].str.replace('_mucosalibd','_projected')
-    projected['dataset'] = 'projected'
-    projected['phenotype'] = mucosalibd_data['phenotype']
-
+def _compare_datasets_post_transport(risk_data, mucosalibd_data, projected):
     # compare projection and risk (post transport)
     print("\nComparing variance between risk and projected:")
     combined_data = pd.concat([risk_data, projected])
@@ -209,7 +189,37 @@ def transport_test():
     pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_mucosalibd','_projected'))) for i in indexes if i.endswith('_mucosalibd')]
     distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
 
-    print("Done.")
+
+def transport_test():
+    # obtain data
+    risk_data = pd.read_csv("risk_data.csv")
+    risk_otu_data = risk_data[data_utils.get_otu_columns(risk_data)]
+    risk_distance_matrix = squareform(pdist(risk_otu_data.values, metric='braycurtis'))
+
+    mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
+    mucosalibd_otu_data = mucosalibd_data[data_utils.get_otu_columns(mucosalibd_data)]
+    mucosalibd_distance_matrix = squareform(pdist(mucosalibd_otu_data.values, metric='braycurtis'))
+
+    _compare_datasets_pre_transport(risk_data, mucosalibd_data)
+
+    # transport
+    print("\nRunning GW transport...")
+    coupling, log = ot.gromov.gromov_wasserstein(risk_distance_matrix, mucosalibd_distance_matrix, verbose=False, log=True)
+    gw_distance = log['gw_dist']
+    print(f'GW distance: {gw_distance}')
+
+    # check spread of coupling matrix
+    _observe_coupling_matrix(coupling, risk_data, mucosalibd_data)
+
+    # project mucosalibd onto risk (transport results)
+    projected = barycentric_projection(coupling, risk_otu_data, x_onto_y=False)
+    projected['sample_id'] = mucosalibd_data['sample_id'].str.replace('_mucosalibd','_projected')
+    projected['dataset'] = 'projected'
+    projected['phenotype'] = mucosalibd_data['phenotype']
+
+    _compare_datasets_post_transport(risk_data, mucosalibd_data, projected)
+
+    print("\nDone.")
 
 
 def main():
