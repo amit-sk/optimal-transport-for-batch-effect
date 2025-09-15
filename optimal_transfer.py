@@ -143,6 +143,13 @@ def transport_test():
     # combined_data = pd.concat([risk_data[risk_data.phenotype == 'control'], projected[risk_data.phenotype == 'control']])
     combined_data.set_index('sample_id', inplace=True)
     distribution_variance.show_variance(combined_data, 'dataset')
+    distribution_variance.show_variance(combined_data, 'phenotype')
+
+    risk_data['dataset+phenotype'] = 'RISK_' + risk_data['phenotype']
+    projected['dataset+phenotype'] = 'Projected_' + projected['phenotype']
+    combined_data = pd.concat([risk_data, projected])
+    combined_data.set_index('sample_id', inplace=True)
+    distribution_variance.show_variance(combined_data, 'dataset+phenotype')
 
     # compare projection and mucosalibd (before and after transport)
     print("\nComparing variance between mucosalibd (original) and projected:")
