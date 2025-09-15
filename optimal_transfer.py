@@ -160,6 +160,7 @@ def transport_test():
     # show variance before alignment
     print("\nComparing variance between risk and mucosalibd (before alignment):")
     distribution_variance.show_variance(combined_data, 'dataset', should_run_pcoa=False)
+    distribution_variance.show_variance(combined_data, 'phenotype')
 
     # transport
     print("\nRunning GW transport...")
