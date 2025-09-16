@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import ot
 from sklearn.ensemble import RandomForestClassifier
+from sklearn import metrics
 from scipy.spatial.distance import pdist, squareform
 
 import data_utils
@@ -66,12 +67,16 @@ def test_signal(source_dataset, target_dataset, projection):
     # show results on source data before transport
     source_pred = classifier.predict(source_data)
     source_acc = (source_pred == source_phenotype).mean()
-    print(f"Accuracy on source data before transport: {source_acc:.3f}")
-
+    source_probability_scores = classifier.predict_proba(source_data)[:, classifier.classes_ == 'CD']
+    source_auc_roc = metrics.roc_auc_score((source_phenotype == 'CD').astype(int), source_probability_scores)
+    print(f"Source data before transport - Accuracy: {source_acc:.3f}, AUC-ROC: {source_auc_roc:.3f}")
+    
     # show results on projection data after transport
     projection_pred = classifier.predict(projection_data)
     projection_acc = (projection_pred == projection_phenotype).mean()
-    print(f"Accuracy on projection data after transport: {projection_acc:.3f}")
+    projection_probability_scores = classifier.predict_proba(projection_data)[:, classifier.classes_ == 'CD']
+    projection_auc_roc = metrics.roc_auc_score((projection_phenotype == 'CD').astype(int), projection_probability_scores)
+    print(f"Projection data after transport - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}")
 
 
 def sanity_check():
@@ -97,6 +102,7 @@ def sanity_check():
     # show variance before alignment
     print("\nComparing variance between original and noisy (before alignment):")
     distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=False)
+    distribution_variance.show_variance(combined_data, 'phenotype', should_run_pcoa=False)
     fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, noisy_otu_data.values, should_use_braycurtis=True)
     print(f"Average FOSCTTM score between noisy and original: {fracs.mean()}")
 
@@ -122,6 +128,7 @@ def sanity_check():
     indexes = combined_data.index
     pairs = [(indexes.get_loc(i), indexes.get_loc(i.replace('_orig','_projected'))) for i in indexes if i.endswith('_orig')]
     distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs)
+    distribution_variance.show_variance(combined_data, 'phenotype')
 
     # compare projection and noisy (before and after transport)
     print("\nComparing variance between noisy and projected:")
@@ -182,10 +189,6 @@ def _observe_coupling_matrix(coupling, risk_data, mucosalibd_data):
 
 def _compare_datasets_pre_transport(risk_data, mucosalibd_data):
     # create combined data (to show variance before alignment)
-    risk_data['dataset'] = 'risk'
-    risk_data['sample_id'] = risk_data['sample_id'] + '_risk'
-    mucosalibd_data['dataset'] = 'mucosalibd'
-    mucosalibd_data['sample_id'] = mucosalibd_data['sample_id'] + '_mucosalibd'
     combined_data = pd.concat([risk_data, mucosalibd_data])
     combined_data.fillna(0.0, inplace=True)
     combined_data.set_index('sample_id', inplace=True)
@@ -239,6 +242,11 @@ def transport_test():
     mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
     mucosalibd_otu_data = mucosalibd_data[data_utils.get_otu_columns(mucosalibd_data)]
     mucosalibd_distance_matrix = squareform(pdist(mucosalibd_otu_data.values, metric='braycurtis'))
+
+    risk_data['dataset'] = 'risk'
+    risk_data['sample_id'] = risk_data['sample_id'] + '_risk'
+    mucosalibd_data['dataset'] = 'mucosalibd'
+    mucosalibd_data['sample_id'] = mucosalibd_data['sample_id'] + '_mucosalibd'
 
     _compare_datasets_pre_transport(risk_data, mucosalibd_data)
 
