@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-import distribution_variance
+import variance_tests
 import data_utils
 from optimal_transport_test import OptimalTransferTest
 
@@ -31,9 +31,9 @@ class SanityCheck(OptimalTransferTest):
 
         # show variance before alignment
         print("\nComparing variance between original and noisy (before alignment):")
-        distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
-        distribution_variance.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
-        fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, noisy_otu_data.values, should_use_braycurtis=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        fracs = variance_tests.Metrics.calc_domain_avg_FOSCTTM(risk_otu_data.values, noisy_otu_data.values, should_use_braycurtis=True)
         print(f"Average FOSCTTM score between noisy and original: {fracs.mean()}")
 
     def show_variance_post_transport(self):
@@ -44,7 +44,7 @@ class SanityCheck(OptimalTransferTest):
         noisy_otu_data = self.source_otu_data
 
         print(f'coupling diagonal sum: {self.coupling.diagonal().sum()}')
-        fracs = distribution_variance.calc_domain_avg_FOSCTTM(risk_otu_data.values, self.projected_otu_data.values, should_use_braycurtis=self.should_run_pcoa)
+        fracs = variance_tests.Metrics.calc_domain_avg_FOSCTTM(risk_otu_data.values, self.projected_otu_data.values, should_use_braycurtis=True)
         print(f"Average FOSCTTM score between projected and original (post transport): {fracs.mean()}")
 
         # compare projection and original (post transport)
@@ -52,17 +52,17 @@ class SanityCheck(OptimalTransferTest):
         combined_data = pd.concat([risk_data, projected])
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_orig', '_projected')
-        distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
         
         print("\nComparing variance between phenotypes in combined original and projected:")
-        distribution_variance.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
 
         # compare projection and noisy (before and after transport)
         print("\nComparing variance between noisy and projected:")
         combined_data = pd.concat([noisy_data, projected])
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_noisy', '_projected')
-        distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
 
         # how much each projection had moved - compare orig, noisy, projected
         print("\nComparing variance between original, noisy and projected:")
@@ -70,7 +70,7 @@ class SanityCheck(OptimalTransferTest):
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_noisy', '_projected')
         pairs.extend(self._get_pairs(combined_data, '_noisy', '_orig'))
-        distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
 
 
 if __name__ == "__main__":

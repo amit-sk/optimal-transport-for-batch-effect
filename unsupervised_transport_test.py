@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-import distribution_variance
+import variance_tests
 from optimal_transport_test import OptimalTransferTest
 
 class UnsupervisedTransportTest(OptimalTransferTest):
@@ -21,9 +21,9 @@ class UnsupervisedTransportTest(OptimalTransferTest):
 
         # show variance before alignment
         print("\nComparing variance between risk and mucosalibd (before alignment):")
-        distribution_variance.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
         print("\nComparing variance between phenotypes in combined risk and mucosalibd:")
-        distribution_variance.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
 
     def show_variance_post_transport(self):
         risk_data = self.target_dataset.copy()
@@ -38,17 +38,17 @@ class UnsupervisedTransportTest(OptimalTransferTest):
         combined_data = pd.concat([risk_data, projected])
         # combined_data = pd.concat([risk_data[risk_data.phenotype == 'control'], projected[risk_data.phenotype == 'control']])  # compare only controls (healthy)
         combined_data.set_index('sample_id', inplace=True)
-        distribution_variance.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
 
         print("\nComparing variance between phenotypes in combined risk and projected:")
-        distribution_variance.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
 
         print("\nComparing variance between dataset+phenotype in combined risk and projected:")
         risk_data['dataset+phenotype'] = 'RISK_' + risk_data['phenotype']
         projected['dataset+phenotype'] = 'Projected_' + projected['phenotype']
         combined_data = pd.concat([risk_data, projected])
         combined_data.set_index('sample_id', inplace=True)
-        distribution_variance.show_variance(combined_data, 'dataset+phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset+phenotype', should_run_pcoa=self.should_run_pcoa)
 
         # compare projection and mucosalibd (before and after transport)
         print("\nComparing variance between mucosalibd (original) and projected:")
@@ -56,7 +56,7 @@ class UnsupervisedTransportTest(OptimalTransferTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
-        distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
 
         # how much each projection had moved - compare risk, mucosalibd, projected
         print("\nComparing variance between risk, mucosalibd and projected:")
@@ -64,7 +64,7 @@ class UnsupervisedTransportTest(OptimalTransferTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
-        distribution_variance.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
 
     def _observe_coupling_matrix(self, coupling, risk_data, mucosalibd_data):
         print("\nObserving coupling matrix...")
@@ -89,9 +89,10 @@ class UnsupervisedTransportTest(OptimalTransferTest):
         plt.title("Histogram of coupling matrix values (non-zero only)")
         plt.show()
 
-        distribution_variance.heatmap(coupling, risk_data['sample_id'], mucosalibd_data['sample_id'], cmap='Blues')
+        variance_tests.Draw.heatmap(coupling, risk_data['sample_id'], mucosalibd_data['sample_id'], cmap='Blues')
 
         # show spread - how many *unique* values in distribution
+        # TODO: might be more informative to show number of non-zero values.
         spread_of_src = pd.DataFrame(coupling).nunique(axis=0)
         plt.hist(spread_of_src, bins=12)
         plt.title("Spread of each sample in src dataset (mucosalibd) in coupling matrix")

@@ -1,9 +1,6 @@
 import pandas as pd
 import numpy as np
 import ot
-from sklearn.ensemble import RandomForestClassifier
-from sklearn import metrics
-from scipy.spatial.distance import pdist, squareform
 
 
 def barycentric_projection(coupling, target_dataset, x_onto_y=True):
