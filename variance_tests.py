@@ -2,6 +2,7 @@ import random
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+from plotly import subplots
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from scipy.spatial import distance
@@ -50,7 +51,7 @@ class Metrics:
         return (fracs_x1 + fracs_x2) / 2
 
     @staticmethod
-    def titration(combined_data, repeats=10, png_name='titration.png', seed=data_utils.PROJECT_SEED):
+    def titration(source_dataset, target_dataset, projected_dataset, repeats=10, png_name='titration.png', seed=data_utils.PROJECT_SEED):
         """
         Based on code from Guy Shur's thesis.
         """
@@ -60,43 +61,59 @@ class Metrics:
             curr_pvals = -1 * np.log(curr_pvals)
             return curr_pvals / repeats
 
+        def _get_titration_results(combined_data, repeats, seed):
+            sample_ids = data_utils.get_sample_ids_by_dataset(combined_data)
+            combined_otu_data = combined_data[data_utils.get_otu_columns(combined_data)].to_numpy()
+            sample_id_to_index = {sid: i for i, sid in enumerate(combined_data.index)}
 
-        sample_ids = data_utils.get_sample_ids_by_dataset(combined_data)
-        combined_otu_data = combined_data[data_utils.get_otu_columns(combined_data)].to_numpy()
-        sample_id_to_index = {sid: i for i, sid in enumerate(combined_data.index)}
+            datasets = list(sample_ids.keys())
+            controls_1 = [sample_id_to_index[sid] for sid in sample_ids[datasets[0]]['control']]
+            controls_2 = [sample_id_to_index[sid] for sid in sample_ids[datasets[1]]['control']]
+            set_size = min(len(controls_1), len(controls_2))
+            if set_size % 2 == 1:
+                set_size -= 1
+            half_set_size = int(set_size / 2)
 
-        datasets = list(sample_ids.keys())
-        controls_1 = [sample_id_to_index[sid] for sid in sample_ids[datasets[0]]['control']]
-        controls_2 = [sample_id_to_index[sid] for sid in sample_ids[datasets[1]]['control']]
-        set_size = min(len(controls_1), len(controls_2))
-        if set_size % 2 == 1:
-            set_size -= 1
-        half_set_size = int(set_size / 2)
+            titration_results = np.zeros((set_size + 1, combined_otu_data.shape[1]))
 
-        titration_results = np.zeros((set_size + 1, combined_otu_data.shape[1]))
+            for k in range(repeats):
+                print(f'titration iteration {k+1} of {repeats}')
+                import time
+                start = time.time()
 
-        for k in range(repeats):
-            print('titration iteration', k)
-            import time
-            start = time.time()
+                random.seed(seed + k)
+                random.shuffle(controls_1)
+                random.shuffle(controls_2)
 
-            random.seed(data_utils.PROJECT_SEED + k)
-            random.shuffle(controls_1)
-            random.shuffle(controls_2)
+                testing_set = controls_1[:set_size]
+                replacement_set = controls_2[:set_size]
 
-            testing_set = controls_1[:set_size]
-            replacement_set = controls_2[:set_size]
+                titration_results[0] += _compute_pvals_from_testing_set(combined_otu_data, testing_set, half_set_size)
 
-            titration_results[0] += _compute_pvals_from_testing_set(combined_otu_data, testing_set, half_set_size)
+                for l in range(set_size):
+                    testing_set[l] = replacement_set[l]
+                    titration_results[l + 1] += _compute_pvals_from_testing_set(combined_otu_data, testing_set, half_set_size)
 
-            for l in range(set_size):
-                testing_set[l] = replacement_set[l]
-                titration_results[l + 1] += _compute_pvals_from_testing_set(combined_otu_data, testing_set, half_set_size)
+                end = time.time()
+                print(f"iteration took {end - start} seconds")
 
-            end = time.time()
-            print(f"iteration took {end - start} seconds")
+            return titration_results
 
-        Draw.draw_titration_results(titration_results, set_size, png_name=png_name)
+        combined_before = pd.concat([target_dataset, source_dataset])
+        combined_before.fillna(0.0, inplace=True)
+        combined_before.set_index('sample_id', inplace=True)
+
+        print("\nCalculating titration before transport")
+        titration_results_before = _get_titration_results(combined_before, repeats, seed)
+
+        combined_after = pd.concat([target_dataset, projected_dataset])
+        combined_after.set_index('sample_id', inplace=True)
+
+        print("\nCalculating titration after transport")
+        titration_results_after = _get_titration_results(combined_after, repeats, seed)
+
+        Draw.draw_titration_results_before_and_after(titration_results_before, titration_results_after, png_name)
+        print(f"titration results saved in {png_name}")
 
 
 class Draw:
@@ -168,35 +185,51 @@ class Draw:
         plt.title(subtitle, fontsize=10)
         plt.show()
 
-    def draw_titration_results(titration_results, set_size, png_name='titration.png'):
-        """
-        Based on code from Guy Shur's thesis.
-        """
-        fig = go.Figure()
-        x = []
-        means = []
-        medians = []
+    def _draw_titration_internal(fig, all_titration_results):
+        row = 1  # working with single row
         max_p_val = 0
-        maximal_mean = 0
-        for l in range(len(titration_results)):
-            curr_pvals = titration_results[l]
-            fig.add_trace(go.Scatter(x=[l for _ in curr_pvals], y=curr_pvals, mode='markers',
-                          marker=dict(opacity=0.2, color='DarkGrey', size=2, line=dict(color='Black', width=1))))
 
-            mean = np.mean(curr_pvals)
-            means.append(mean)
-            maximal_mean = max(mean, maximal_mean)
-            medians.append(np.median(curr_pvals))
-            x.append(l)
-            max_p_val = max(max_p_val, max(curr_pvals))
-            fig.add_trace(go.Scatter(x=x, y=means, mode='lines', marker=dict(color='Blue', size=2)))
-            fig.add_trace(go.Scatter(x=x, y=medians, mode='lines', marker=dict(color='Red', size=2)))
+        for i in range(len(all_titration_results)):
+            titration_results = all_titration_results[i]
+            x = []
+            means = []
+            medians = []
+            for l in range(len(titration_results)):
+                curr_pvals = titration_results[l]
+                fig.add_trace(go.Scatter(x=[l for _ in curr_pvals], y=curr_pvals, mode='markers',
+                            marker=dict(opacity=0.2, color='DarkGrey', size=2, line=dict(color='Black', width=1))),
+                            col=i+1, row=row)
 
+                mean = np.mean(curr_pvals)
+                means.append(mean)
+                medians.append(np.median(curr_pvals))
+                x.append(l)
+                max_p_val = max(max_p_val, max(curr_pvals))
+
+            fig.add_trace(go.Scatter(x=x, y=means, mode='lines', marker=dict(color='Blue', size=2)), col=i+1, row=row)
+            fig.add_trace(go.Scatter(x=x, y=medians, mode='lines', marker=dict(color='Red', size=2)), col=i+1, row=row)
+
+        set_size = len(all_titration_results[0])  # they should all be the same size
         fig.update_xaxes(tickmode='array',
                          tickvals=[0, 0.25 * set_size, 0.5 * set_size, 0.75 * set_size, set_size],
                          ticktext=['0%', '50%', '100%', '50%', '0%'])
         fig.update_yaxes(range=[0, 1.05 * max_p_val])
         fig.update_layout(showlegend=False)
+
+    def draw_titration_results_before_and_after(titration_results_before, titration_results_after, png_name='titration.png'):
+        """
+        Based on code from Guy Shur's thesis.
+        """
+        fig = subplots.make_subplots(cols=2, print_grid=False, vertical_spacing=0.13, subplot_titles=["Before transport", "After transport"])
+        Draw._draw_titration_internal(fig, [titration_results_before, titration_results_after])
+        fig.write_image(png_name, height=600, width=1200, scale=6, format='png')
+
+    def draw_titration_results(titration_results, png_name='titration.png'):
+        """
+        Based on code from Guy Shur's thesis.
+        """
+        fig = subplots.make_subplots(print_grid=False, vertical_spacing=0.13)
+        Draw._draw_titration_internal(fig, [titration_results])
         fig.write_image(png_name, height=600, width=800, scale=6, format='png')
 
 

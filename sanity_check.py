@@ -1,3 +1,4 @@
+import os.path
 import pandas as pd
 import numpy as np
 
@@ -29,10 +30,6 @@ class SanityCheck(OptimalTransferTest):
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_orig', '_noisy')
 
-        # titration plot to measure batch effect
-        if self.should_run_pcoa:
-            variance_tests.Metrics.titration(combined_data, repeats=10, png_name='titrations/sanity_check_pre_transport_titration.png')
-
         # show variance before alignment
         print("\nComparing variance between original and noisy (before alignment):")
         variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
@@ -51,12 +48,13 @@ class SanityCheck(OptimalTransferTest):
         fracs = variance_tests.Metrics.calc_domain_avg_FOSCTTM(risk_otu_data.values, self.projected_otu_data.values, should_use_braycurtis=True)
         print(f"Average FOSCTTM score between projected and original (post transport): {fracs.mean()}")
 
-        combined_data = pd.concat([risk_data, projected])
-        combined_data.set_index('sample_id', inplace=True)
-
         # titration plot to measure batch effect
         if self.should_run_pcoa:
-            variance_tests.Metrics.titration(combined_data, repeats=10, png_name='titrations/sanity_check_post_transport_titration.png')
+            png_path = os.path.join('titrations', self.__class__.__name__ + '_titration.png')
+            variance_tests.Metrics.titration(self.source_dataset, self.target_dataset, self.projected_data, repeats=10, png_name=png_path)
+
+        combined_data = pd.concat([risk_data, projected])
+        combined_data.set_index('sample_id', inplace=True)
 
         # compare projection and original (post transport)
         print("\nComparing variance between original and projected:")
