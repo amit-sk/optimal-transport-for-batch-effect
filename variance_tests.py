@@ -63,20 +63,16 @@ class Metrics:
 
         sample_ids = data_utils.get_sample_ids_by_dataset(combined_data)
         combined_otu_data = combined_data[data_utils.get_otu_columns(combined_data)].to_numpy()
-        # otu_columns = data_utils.get_otu_columns(combined_data)
         sample_id_to_index = {sid: i for i, sid in enumerate(combined_data.index)}
 
         datasets = list(sample_ids.keys())
-        # controls_1_0 = sample_ids[datasets[0]]['control']
         controls_1 = [sample_id_to_index[sid] for sid in sample_ids[datasets[0]]['control']]
-        # controls_2_0 = sample_ids[datasets[1]]['control']
         controls_2 = [sample_id_to_index[sid] for sid in sample_ids[datasets[1]]['control']]
         set_size = min(len(controls_1), len(controls_2))
         if set_size % 2 == 1:
             set_size -= 1
         half_set_size = int(set_size / 2)
 
-        # titration_results_0 = {l: np.array([0.0 for otu in otu_columns]) for l in range(set_size + 1)}
         titration_results = np.zeros((set_size + 1, combined_otu_data.shape[1]))
 
         for k in range(repeats):
@@ -88,30 +84,18 @@ class Metrics:
             random.shuffle(controls_1)
             random.shuffle(controls_2)
 
-            # random.shuffle(controls_1_1)
-            # random.shuffle(controls_2_1)
-            # rng_k = np.random.default_rng(seed + k)
-            # rng_k.shuffle(controls_1_1)
-            # rng_k.shuffle(controls_2_1)
-
             testing_set = controls_1[:set_size]
-            # testing_set_1 = controls_1_1[:set_size]
-            # replacement_set_0 = controls_2_0[:set_size]
             replacement_set = controls_2[:set_size]
 
-            # titration_results_0[0] += _compute_pvals_from_testing_set_0(combined_data, testing_set_0, half_set_size, otu_columns)
             titration_results[0] += _compute_pvals_from_testing_set(combined_otu_data, testing_set, half_set_size)
 
             for l in range(set_size):
                 testing_set[l] = replacement_set[l]
-                # testing_set_1[l] = replacement_set_1[l]
-                # titration_results_0[l + 1] += _compute_pvals_from_testing_set_0(combined_data, testing_set_0, half_set_size, otu_columns)
                 titration_results[l + 1] += _compute_pvals_from_testing_set(combined_otu_data, testing_set, half_set_size)
 
             end = time.time()
             print(f"iteration took {end - start} seconds")
 
-        # Draw.draw_titration_results(titration_results_0, set_size, 'test0.png')
         Draw.draw_titration_results(titration_results, set_size, png_name=png_name)
 
 
