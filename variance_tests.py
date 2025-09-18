@@ -1,5 +1,4 @@
 import random
-import math
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
@@ -12,7 +11,6 @@ from skbio.stats.distance import permanova
 from skbio.stats.ordination import pcoa
 
 import data_utils
-from guy_shur_thesis import utils, analyses
 
 
 class Metrics:
@@ -27,7 +25,6 @@ class Metrics:
         permanova_results = permanova(distance_matrix, group_col)
         return permanova_results
 
-
     @staticmethod
     def calc_frac_idx(x1_mat ,x2_mat, should_use_braycurtis=False):
         """
@@ -41,7 +38,6 @@ class Metrics:
         fracs_x1 = closer_x1 / (x1_mat.shape[0] - 1)
         fracs_x2 = closer_x2 / (x2_mat.shape[0] - 1)
         return fracs_x1, fracs_x2
-
 
     @staticmethod
     def calc_domain_avg_FOSCTTM(x1_mat, x2_mat, should_use_braycurtis=False):
@@ -58,19 +54,25 @@ class Metrics:
         """
         Based on code from Guy Shur's thesis.
         """
-        sample_ids = utils.get_sample_ids(control_case_columns_data=combined_data)
+        def _compute_pvals_from_testing_set(combined_data, testing_set, half_set_size, combined_otu_data):
+            curr_pvals = [ranksums(combined_data.loc[testing_set[:half_set_size], otu], combined_data.loc[testing_set[half_set_size:], otu])[1]
+                          for otu in combined_otu_data.columns]
+            curr_pvals = -1 * np.log(curr_pvals)
+            return curr_pvals / repeats
+
+
+        sample_ids = data_utils.get_sample_ids_by_dataset(combined_data)
         combined_otu_data = combined_data[data_utils.get_otu_columns(combined_data)]
 
-        cohorts = list(sample_ids.keys())
-        controls_1 = sample_ids[cohorts[0]]['control']
-        controls_2 = sample_ids[cohorts[1]]['control']
-        set_size = min(math.floor(len(controls_1)), len(controls_2))
+        datasets = list(sample_ids.keys())
+        controls_1 = sample_ids[datasets[0]]['control']
+        controls_2 = sample_ids[datasets[1]]['control']
+        set_size = min(len(controls_1), len(controls_2))
         if set_size % 2 == 1:
             set_size -= 1
-        set_size = int(set_size)
         half_set_size = int(set_size / 2)
 
-        titration_results = {}
+        titration_results = {l: np.array([0.0 for otu in data_utils.get_otu_columns(combined_otu_data)]) for l in range(set_size + 1)}
 
         for k in range(repeats):
             print('titration iteration', k)
@@ -80,22 +82,11 @@ class Metrics:
             testing_set = controls_1[:set_size]
             replacement_set = controls_2[:set_size]
 
-            if k == 0:
-                for l in range(set_size + 1):
-                    titration_results[l] = np.array([0.0 for otu in data_utils.get_otu_columns(combined_otu_data)])
+            titration_results[0] += _compute_pvals_from_testing_set(combined_data, testing_set, half_set_size, combined_otu_data)
 
-            curr_pvals = [ranksums(combined_data.loc[testing_set[:half_set_size], otu], combined_data.loc[testing_set[half_set_size:], otu])[1]
-                          for otu in data_utils.get_otu_columns(combined_otu_data)]
-            curr_pvals = analyses.fdr(curr_pvals)[1]
-            curr_pvals = -1 * np.log(curr_pvals)
-            titration_results[0] += curr_pvals / repeats
             for l in range(set_size):
                 testing_set[l] = replacement_set[l]
-                curr_pvals = [ranksums(combined_data.loc[testing_set[:half_set_size], otu], combined_data.loc[testing_set[half_set_size:], otu])[1]
-                              for otu in data_utils.get_otu_columns(combined_otu_data)]
-                curr_pvals = analyses.fdr(curr_pvals)[1]
-                curr_pvals = -1 * np.log(curr_pvals)
-                titration_results[l + 1] += curr_pvals / repeats
+                titration_results[l + 1] += _compute_pvals_from_testing_set(combined_data, testing_set, half_set_size, combined_otu_data)
 
         Draw.draw_titration_results(titration_results, set_size, png_name=png_name)
 
@@ -170,6 +161,9 @@ class Draw:
         plt.show()
 
     def draw_titration_results(titration_results, set_size, png_name='titration.png'):
+        """
+        Based on code from Guy Shur's thesis.
+        """
         fig = go.Figure()
         x = []
         means = []

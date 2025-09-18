@@ -24,11 +24,6 @@ class SanityCheck(OptimalTransferTest):
         noisy_data = self.source_dataset.copy()
         noisy_otu_data = self.source_otu_data
 
-        risk_data['batch'] = 'orig'
-        risk_data['set'] = risk_data['phenotype'].replace({'CD': 'case'})
-        noisy_data['batch'] = 'noisy'
-        noisy_data['set'] = noisy_data['phenotype'].replace({'CD': 'case'})
-
         # create combined data
         combined_data = pd.concat([risk_data, noisy_data])
         combined_data.set_index('sample_id', inplace=True)
