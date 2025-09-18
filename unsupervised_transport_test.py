@@ -19,6 +19,10 @@ class UnsupervisedTransportTest(OptimalTransferTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
 
+        # titration plot to measure batch effect
+        if self.should_run_pcoa:
+            variance_tests.Metrics.titration(combined_data, repeats=10, png_name='titrations/unsupervised_pre_transport_titration.png')
+
         # show variance before alignment
         print("\nComparing variance between risk and mucosalibd (before alignment):")
         variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
@@ -33,13 +37,17 @@ class UnsupervisedTransportTest(OptimalTransferTest):
         if self.should_run_pcoa:
             self._observe_coupling_matrix(self.coupling, risk_data, mucosalibd_data)
 
-        # compare projection and risk (post transport)
-        print("\nComparing variance between risk and projected:")
         combined_data = pd.concat([risk_data, projected])
         # combined_data = pd.concat([risk_data[risk_data.phenotype == 'control'], projected[risk_data.phenotype == 'control']])  # compare only controls (healthy)
         combined_data.set_index('sample_id', inplace=True)
-        variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
 
+        # titration plot to measure batch effect
+        if self.should_run_pcoa:
+            variance_tests.Metrics.titration(combined_data, repeats=10, png_name='titrations/unsupervised_post_transport_titration.png')
+
+        # compare projection and risk (post transport)
+        print("\nComparing variance between risk and projected:")
+        variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
         print("\nComparing variance between phenotypes in combined risk and projected:")
         variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
 
