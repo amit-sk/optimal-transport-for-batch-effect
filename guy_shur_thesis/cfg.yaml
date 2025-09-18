@@ -1,0 +1,17 @@
+collection: 'collections/c_0/'
+tree: 'data/gg_13_8_97_otus_tree.qza'
+control_case_columns_data: 'metadata_franzosa_halfvarson.tsv'
+simulation_dir: 'collections/AG_sim_new/'
+correct_real_data: True
+run_sim_experiment: False
+nrep_simulation: 200
+ground_truth_available_sequences: 1000000
+methods:
+  - 'TMS'
+#  - 'LRT'
+  - 'CB'
+  - 'MU'
+  - 'PC'
+  - 'LS'
+  - 'DCC'
+  - 'CQ'

@@ -1,13 +1,18 @@
+import random
+import math
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from scipy.spatial import distance
+from scipy.stats import ranksums
 from skbio.diversity import beta_diversity
 from skbio.stats.distance import permanova
 from skbio.stats.ordination import pcoa
 
 import data_utils
+from guy_shur_thesis import utils, analyses
 
 
 class Metrics:
@@ -47,6 +52,52 @@ class Metrics:
         """
         fracs_x1, fracs_x2 = Metrics.calc_frac_idx(x1_mat, x2_mat, should_use_braycurtis=should_use_braycurtis)
         return (fracs_x1 + fracs_x2) / 2
+
+    @staticmethod
+    def titration(combined_data, repeats=10, png_name='titration.png'):
+        """
+        Based on code from Guy Shur's thesis.
+        """
+        sample_ids = utils.get_sample_ids(control_case_columns_data=combined_data)
+        combined_otu_data = combined_data[data_utils.get_otu_columns(combined_data)]
+
+        cohorts = list(sample_ids.keys())
+        controls_1 = sample_ids[cohorts[0]]['control']
+        controls_2 = sample_ids[cohorts[1]]['control']
+        set_size = min(math.floor(len(controls_1)), len(controls_2))
+        if set_size % 2 == 1:
+            set_size -= 1
+        set_size = int(set_size)
+        half_set_size = int(set_size / 2)
+
+        titration_results = {}
+
+        for k in range(repeats):
+            print('titration iteration', k)
+            random.seed(data_utils.PROJECT_SEED + k)
+            random.shuffle(controls_1)
+            random.shuffle(controls_2)
+            testing_set = controls_1[:set_size]
+            replacement_set = controls_2[:set_size]
+
+            if k == 0:
+                for l in range(set_size + 1):
+                    titration_results[l] = np.array([0.0 for otu in data_utils.get_otu_columns(combined_otu_data)])
+
+            curr_pvals = [ranksums(combined_data.loc[testing_set[:half_set_size], otu], combined_data.loc[testing_set[half_set_size:], otu])[1]
+                          for otu in data_utils.get_otu_columns(combined_otu_data)]
+            curr_pvals = analyses.fdr(curr_pvals)[1]
+            curr_pvals = -1 * np.log(curr_pvals)
+            titration_results[0] += curr_pvals / repeats
+            for l in range(set_size):
+                testing_set[l] = replacement_set[l]
+                curr_pvals = [ranksums(combined_data.loc[testing_set[:half_set_size], otu], combined_data.loc[testing_set[half_set_size:], otu])[1]
+                              for otu in data_utils.get_otu_columns(combined_otu_data)]
+                curr_pvals = analyses.fdr(curr_pvals)[1]
+                curr_pvals = -1 * np.log(curr_pvals)
+                titration_results[l + 1] += curr_pvals / repeats
+
+        Draw.draw_titration_results(titration_results, set_size, png_name=png_name)
 
 
 class Draw:
@@ -117,6 +168,34 @@ class Draw:
         plt.suptitle("PCoA of OTU Relative Abundance")
         plt.title(subtitle, fontsize=10)
         plt.show()
+
+    def draw_titration_results(titration_results, set_size, png_name='titration.png'):
+        fig = go.Figure()
+        x = []
+        means = []
+        medians = []
+        max_p_val = 0
+        maximal_mean = 0
+        for l in range(len(titration_results)):
+            curr_pvals = titration_results[l]
+            fig.add_trace(go.Scatter(x=[l for _ in curr_pvals], y=curr_pvals, mode='markers',
+                          marker=dict(opacity=0.2, color='DarkGrey', size=2, line=dict(color='Black', width=1))))
+
+            mean = np.mean(curr_pvals)
+            means.append(mean)
+            maximal_mean = max(mean, maximal_mean)
+            medians.append(np.median(curr_pvals))
+            x.append(l)
+            max_p_val = max(max_p_val, max(curr_pvals))
+            fig.add_trace(go.Scatter(x=x, y=means, mode='lines', marker=dict(color='Blue', size=2)))
+            fig.add_trace(go.Scatter(x=x, y=medians, mode='lines', marker=dict(color='Red', size=2)))
+
+        fig.update_xaxes(tickmode='array',
+                         tickvals=[0, 0.25 * set_size, 0.5 * set_size, 0.75 * set_size, set_size],
+                         ticktext=['0%', '50%', '100%', '50%', '0%'])
+        fig.update_yaxes(range=[0, 1.05 * max_p_val])
+        fig.update_layout(showlegend=False)
+        fig.write_image(png_name, height=600, width=800, scale=6, format='png')
 
 
 def show_variance(data, group_col_name, should_run_pcoa=True, pcoa_pairs=None):

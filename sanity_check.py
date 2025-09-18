@@ -19,15 +19,21 @@ class SanityCheck(OptimalTransferTest):
                          source_dataset_name='noisy', target_dataset_name='orig')
 
     def show_variance_pre_transport(self):
-        risk_data = self.target_dataset
+        risk_data = self.target_dataset.copy()
         risk_otu_data = self.target_otu_data
-        noisy_data = self.source_dataset
+        noisy_data = self.source_dataset.copy()
         noisy_otu_data = self.source_otu_data
+
+        risk_data['batch'] = 'orig'
+        risk_data['set'] = risk_data['phenotype'].replace({'CD': 'case'})
+        noisy_data['batch'] = 'noisy'
+        noisy_data['set'] = noisy_data['phenotype'].replace({'CD': 'case'})
 
         # create combined data
         combined_data = pd.concat([risk_data, noisy_data])
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_orig', '_noisy')
+        variance_tests.Metrics.titration(combined_data, repeats=10, png_name='titrations/sanity_check_pre_transport_titration.png')
 
         # show variance before alignment
         print("\nComparing variance between original and noisy (before alignment):")
