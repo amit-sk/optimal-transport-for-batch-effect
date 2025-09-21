@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import variance_tests
-from optimal_transport_test import OptimalTransferTest
+from tests.optimal_transport_test import OptimalTransferTest
 
 class UnsupervisedTransportTest(OptimalTransferTest):
     def __init__(self, should_run_pcoa=False):
@@ -109,6 +109,3 @@ class UnsupervisedTransportTest(OptimalTransferTest):
         plt.title("Spread of each sample in target dataset (risk) in coupling matrix")
         plt.show()
 
-
-if __name__ == "__main__":
-    UnsupervisedTransportTest(should_run_pcoa=False).run_test()

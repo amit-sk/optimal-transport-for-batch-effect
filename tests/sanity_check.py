@@ -4,7 +4,7 @@ import numpy as np
 
 import variance_tests
 import data_utils
-from optimal_transport_test import OptimalTransferTest
+from tests.optimal_transport_test import OptimalTransferTest
 
 
 class SanityCheck(OptimalTransferTest):
@@ -79,6 +79,3 @@ class SanityCheck(OptimalTransferTest):
         pairs.extend(self._get_pairs(combined_data, '_noisy', '_orig'))
         variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
 
-
-if __name__ == "__main__":
-    SanityCheck(should_run_pcoa=False).run_test()
