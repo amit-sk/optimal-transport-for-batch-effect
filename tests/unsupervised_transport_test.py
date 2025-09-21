@@ -75,23 +75,18 @@ class UnsupervisedTransportTest(OptimalTransferTest):
     def _observe_coupling_matrix(self, coupling, risk_data, mucosalibd_data):
         print("\nObserving coupling matrix...")
 
-        d_all = {}
-        c = pd.DataFrame(coupling) * 132  # sum of columns will be 1, sum of all columns will be 132
-        for i in range(132):
-            vals = c.iloc[:, i].value_counts()
-            d = vals.to_dict()
-            d.pop(0)
-            for k,v in d.items():
-                if k in d_all:
-                    d_all[k] += v
-                else:
-                    d_all[k] = v
+        values, counts = np.unique(coupling * 132, return_counts=True)  # sum of columns will be 1, sum of all columns will be 132
 
-        plt.bar(d_all.keys(), d_all.values(), width=1/132)
-        plt.bar(d_all.keys(), d_all.values(), width=1/200)
-        plt.bar(d_all.keys(), d_all.values(), width=1/2000, color='black')
-        plt.yticks(np.arange(0, max(d_all.values())+1, 2.0))
-        plt.xticks(np.arange(0, max(d_all.keys())+0.01, 0.005))
+        # remove zero
+        indexes = np.where(values == 0)
+        values = np.delete(values, indexes)
+        counts = np.delete(counts, indexes)
+
+        plt.bar(values, counts, width=1/132)
+        plt.bar(values, counts, width=1/200)
+        plt.bar(values, counts, width=1/2000, color='black')
+        plt.yticks(np.arange(0, max(counts)+1, min(counts)))
+        plt.xticks(np.arange(0, max(values)+0.01, 0.005))
         plt.title("Histogram of coupling matrix values (non-zero only)")
         plt.show()
 

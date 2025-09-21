@@ -43,17 +43,19 @@ class OptimalTransferTest:
     def show_variance_post_transport(self):
         raise NotImplementedError()
 
-    def transport(self):
-        self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, verbose=False, log=True)
-        self.gw_distance = log['gw_dist']
-        print(f'GW distance: {self.gw_distance}')
-
+    def _get_projected(self):
         self.projected_otu_data = optimal_transport.barycentric_projection(self.coupling, self.target_otu_data, x_onto_y=False)
 
         self.projected_data = self.projected_otu_data.copy()
         self.projected_data['dataset'] = 'projected'
         self.projected_data['phenotype'] = self.source_dataset['phenotype']
         self.projected_data['sample_id'] = self.source_dataset['sample_id'].str.replace('_'+self.source_dataset_name ,'_projected')
+
+    def transport(self):
+        self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, verbose=False, log=True)
+        self.gw_distance = log['gw_dist']
+        print(f'GW distance: {self.gw_distance}')
+        self._get_projected()
 
     def test_signal(self):
         # combine source, target, projected to unify columns (OTUs)
