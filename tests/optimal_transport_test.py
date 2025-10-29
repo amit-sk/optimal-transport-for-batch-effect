@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 import optimal_transport
 import data_utils
 
-class OptimalTransferTest:
+class OptimalTransportTest:
     def __init__(self, source_dataset, target_dataset, should_run_pcoa=False, source_dataset_name='source', target_dataset_name='target'):
         """
         source_dataset: pandas dataframe of data being transported

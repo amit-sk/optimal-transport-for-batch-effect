@@ -4,15 +4,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import variance_tests
-from tests.optimal_transport_test import OptimalTransferTest
+from tests.optimal_transport_test import OptimalTransportTest
 
-class UnsupervisedTransportTest(OptimalTransferTest):
-    def __init__(self, should_run_pcoa=False):
+class UnsupervisedTransportTest(OptimalTransportTest):
+    def __init__(self, *, should_run_pcoa=False, **kwargs):
         risk_data = pd.read_csv("risk_data.csv")
         mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
 
-        super().__init__(mucosalibd_data, risk_data, should_run_pcoa=should_run_pcoa,
-                         source_dataset_name='mucosalibd', target_dataset_name='risk')
+        super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa,
+                         source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
 
     def show_variance_pre_transport(self):
         # create combined data (to show variance before alignment)

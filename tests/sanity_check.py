@@ -4,11 +4,11 @@ import numpy as np
 
 import variance_tests
 import data_utils
-from tests.optimal_transport_test import OptimalTransferTest
+from tests.optimal_transport_test import OptimalTransportTest
 
 
-class SanityCheck(OptimalTransferTest):
-    def __init__(self, should_run_pcoa=False):
+class SanityCheck(OptimalTransportTest):
+    def __init__(self, *, should_run_pcoa=False, **kwargs):
         """
         transporting noisy RISK data onto original RISK data.
         """
@@ -17,7 +17,7 @@ class SanityCheck(OptimalTransferTest):
         noisy_data = data_utils.renormalize_data(noisy_data)
 
         super().__init__(noisy_data, risk_data, should_run_pcoa=should_run_pcoa,
-                         source_dataset_name='noisy', target_dataset_name='orig')
+                         source_dataset_name='noisy', target_dataset_name='orig', **kwargs)
 
     def show_variance_pre_transport(self):
         risk_data = self.target_dataset.copy()

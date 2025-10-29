@@ -5,11 +5,11 @@ import matplotlib.pyplot as plt
 
 import variance_tests
 import data_utils
-from tests.optimal_transport_test import OptimalTransferTest
+from tests.optimal_transport_test import OptimalTransportTest
 
 
-class SplitDatabaseSanityCheck(OptimalTransferTest):
-    def __init__(self, should_run_pcoa=False):
+class SplitDatabaseSanityCheck(OptimalTransportTest):
+    def __init__(self, *, should_run_pcoa=False, **kwargs):
         """
         Split risk dataset and transport one half onto the other half.
         """
@@ -22,7 +22,7 @@ class SplitDatabaseSanityCheck(OptimalTransferTest):
         risk_data_1 = risk_data_1.reset_index(drop=True)
         risk_data_2 = risk_data_2.reset_index(drop=True)
 
-        super().__init__(risk_data_1, risk_data_2, should_run_pcoa=should_run_pcoa)
+        super().__init__(risk_data_1, risk_data_2, should_run_pcoa=should_run_pcoa, **kwargs)
 
     def show_variance_pre_transport(self):
         # create combined data
