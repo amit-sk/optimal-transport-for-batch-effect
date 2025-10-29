@@ -16,7 +16,7 @@ class SanityCheck(OptimalTransportTest):
         noisy_data = data_utils.create_noisy_data(risk_data, proportion_of_std=0.1)
         noisy_data = data_utils.renormalize_data(noisy_data)
 
-        super().__init__(noisy_data, risk_data, should_run_pcoa=should_run_pcoa,
+        super().__init__(source_dataset=noisy_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa,
                          source_dataset_name='noisy', target_dataset_name='orig', **kwargs)
 
     def show_variance_pre_transport(self):

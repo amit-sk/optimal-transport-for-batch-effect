@@ -32,7 +32,7 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         projected = self.projected_data.copy()
 
         if self.should_run_pcoa:
-            self._observe_coupling_matrix(self.coupling, risk_data, mucosalibd_data)
+            self._observe_coupling_matrix()
 
         # titration plot to measure batch effect
         if self.should_run_pcoa:
@@ -72,10 +72,13 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
         variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
 
-    def _observe_coupling_matrix(self, coupling, risk_data, mucosalibd_data):
+    def _observe_coupling_matrix(self):
+        """
+        debug function, copy pasted with numerical constants fit for data
+        """
         print("\nObserving coupling matrix...")
 
-        values, counts = np.unique(coupling * 132, return_counts=True)  # sum of columns will be 1, sum of all columns will be 132
+        values, counts = np.unique(self.coupling * 132, return_counts=True)  # sum of columns will be 1, sum of all columns will be 132
 
         # remove zero
         indexes = np.where(values == 0)
@@ -90,16 +93,17 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         plt.title("Histogram of coupling matrix values (non-zero only)")
         plt.show()
 
-        variance_tests.Draw.heatmap(coupling, risk_data['sample_id'], mucosalibd_data['sample_id'], cmap='Blues')
+        variance_tests.Draw.heatmap(self.coupling, self.target_dataset['sample_id'], self.source_dataset['sample_id'], cmap='Blues')
 
         # show spread - how many *unique* values in distribution
         # TODO: might be more informative to show number of non-zero values.
-        spread_of_src = pd.DataFrame(coupling).nunique(axis=0)
+        coupling = pd.DataFrame(self.coupling)
+        spread_of_src = coupling.nunique(axis=0)
         plt.hist(spread_of_src, bins=12)
         plt.title("Spread of each sample in src dataset (mucosalibd) in coupling matrix")
         plt.show()
 
-        spread_of_src = pd.DataFrame(coupling).nunique(axis=1)
+        spread_of_src = coupling.nunique(axis=1)
         plt.hist(spread_of_src, bins=12)
         plt.title("Spread of each sample in target dataset (risk) in coupling matrix")
         plt.show()
