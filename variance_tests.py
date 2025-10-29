@@ -63,7 +63,7 @@ class Metrics:
 
         def _get_titration_results(combined_data, repeats, seed):
             sample_ids = data_utils.get_sample_ids_by_dataset(combined_data)
-            combined_otu_data = combined_data[data_utils.get_otu_columns(combined_data)].to_numpy()
+            combined_otu_data = data_utils.round_dataframe(5, combined_data[data_utils.get_otu_columns(combined_data)]).to_numpy()
             sample_id_to_index = {sid: i for i, sid in enumerate(combined_data.index)}
 
             datasets = list(sample_ids.keys())
@@ -197,11 +197,10 @@ class Draw:
             for l in range(len(titration_results)):
                 curr_pvals = titration_results[l]
                 fig.add_trace(go.Scatter(x=[l for _ in curr_pvals], y=curr_pvals, mode='markers',
-                            marker=dict(opacity=0.2, color='DarkGrey', size=2, line=dict(color='Black', width=1))),
-                            col=i+1, row=row)
+                              marker=dict(opacity=0.2, color='DarkGrey', size=2, line=dict(color='Black', width=1))),
+                              col=i+1, row=row)
 
-                mean = np.mean(curr_pvals)
-                means.append(mean)
+                means.append(np.mean(curr_pvals))
                 medians.append(np.median(curr_pvals))
                 x.append(l)
                 max_p_val = max(max_p_val, max(curr_pvals))
