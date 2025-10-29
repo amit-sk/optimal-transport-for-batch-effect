@@ -35,7 +35,9 @@ class SplitDatabaseSanityCheck(OptimalTransportTest):
         variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
 
     def show_variance_post_transport(self):
-        self._observe_coupling_matrix()
+        if self.should_run_pcoa:
+            # debug
+            self._observe_coupling_matrix()
 
         # titration plot to measure batch effect
         if self.should_run_pcoa:
@@ -91,7 +93,7 @@ class SplitDatabaseSanityCheck(OptimalTransportTest):
 
         # show spread - how many *unique* values in distribution
         # TODO: might be more informative to show number of non-zero values.
-        coupling = pd.DataFrame(coupling)
+        coupling = pd.DataFrame(self.coupling)
         spread_of_src = coupling.nunique(axis=0)
         plt.hist(spread_of_src, bins=12)
         plt.title("Spread of each sample in src dataset in coupling matrix")

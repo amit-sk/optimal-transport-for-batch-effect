@@ -69,7 +69,7 @@ class Metrics:
             datasets = list(sample_ids.keys())
             controls_1 = [sample_id_to_index[sid] for sid in sample_ids[datasets[0]]['control']]
             controls_2 = [sample_id_to_index[sid] for sid in sample_ids[datasets[1]]['control']]
-            set_size = min(len(controls_1), len(controls_2))
+            set_size = min(len(controls_1), len(controls_2))  # set_size is "2q" in Guy Shur's thesis description
             if set_size % 2 == 1:
                 set_size -= 1
             half_set_size = int(set_size / 2)
