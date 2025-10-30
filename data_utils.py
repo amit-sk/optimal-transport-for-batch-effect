@@ -21,10 +21,13 @@ def get_sample_ids_by_dataset(combined_data: pd.DataFrame) -> dict:
     """
     Based on code from Guy Shur's thesis (utils.py).
     """
-    return {dataset: {'CD': combined_data[
-        (combined_data['dataset'] == dataset) & (combined_data['phenotype'] == 'CD')].index.to_list(),
-                     'control': combined_data[(combined_data['dataset'] == dataset) & (
-                             combined_data['phenotype'] == 'control')].index.tolist()}
+    return {dataset:
+                {
+                    'CD':
+                        combined_data[(combined_data['dataset'] == dataset) & (combined_data['phenotype'] == 'CD')].index.to_list(),
+                    'control':
+                        combined_data[(combined_data['dataset'] == dataset) & (combined_data['phenotype'] == 'control')].index.tolist()
+                }
             for dataset in np.unique(combined_data['dataset'])}
 
 
