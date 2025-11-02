@@ -4,14 +4,12 @@ from tests.unsupervised_transport_test import UnsupervisedTransportTest
 
 class SupervisedPhenotypeWeightingTest(UnsupervisedTransportTest):
     """
-    transporting RISK data onto RISK data with supervised phenotype weighting.
+    Transporting mucosalIBD data onto RISK data with supervised phenotype weighting.
+    Weighting the target distribution by source phenotype proportion.
     """
     def transport(self):
         p = self._get_dataset_phenotype_weights()
-        self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, p=p, verbose=False, log=True)
-        self.gw_distance = log['gw_dist']
-        print(f'GW distance: {self.gw_distance}')
-        self._get_projected()
+        super().transport(p=p)
 
     def _get_dataset_phenotype_weights(self):
         source_phenotype_counts = self.source_dataset['phenotype'].value_counts()

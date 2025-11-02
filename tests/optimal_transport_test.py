@@ -51,8 +51,8 @@ class OptimalTransportTest:
         self.projected_data['phenotype'] = self.source_dataset['phenotype']
         self.projected_data['sample_id'] = self.source_dataset['sample_id'].str.replace('_'+self.source_dataset_name ,'_projected')
 
-    def transport(self):
-        self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, verbose=False, log=True)
+    def transport(self, **kwargs_for_ot):
+        self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, verbose=False, log=True, **kwargs_for_ot)
         self.gw_distance = log['gw_dist']
         print(f'GW distance: {self.gw_distance}')
         self._get_projected()
