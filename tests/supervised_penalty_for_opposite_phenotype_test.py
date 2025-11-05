@@ -1,6 +1,8 @@
 import ot
+import os
 from ot.gromov import *
 from ot.gromov._gw import *
+
 from tests.unsupervised_transport_test import UnsupervisedTransportTest
 
 class SupervisedPenaltyForOppositePhenotypeTest(UnsupervisedTransportTest):
@@ -8,12 +10,12 @@ class SupervisedPenaltyForOppositePhenotypeTest(UnsupervisedTransportTest):
     Adds a penalty matrix to the Gromov-Wasserstein transport problem that penalizes transport between samples with opposite phenotypes.
     Alpha parameter controls the weight of the penalty (alpha=1 means penalty of 1).
     """
-    def __init__(self, *, alpha=1, should_run_pcoa=False, **kwargs):
-        super().__init__(should_run_pcoa=should_run_pcoa, **kwargs)
+    def __init__(self, *, alpha=1, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
+        super().__init__(should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, **kwargs)
         self.alpha = alpha
 
     def transport(self):
-        print(f'{self.alpha=} for penalty weight for opposite phenotypes')
+        print(f'{self.alpha=} as penalty weight for opposite phenotypes')
         M = self.alpha * self._get_penalty_matrix_for_opposite_phenotypes()
         self.coupling, log = gromov_wasserstein_copy(self.target_distance_matrix, self.source_distance_matrix, M=M, verbose=False, log=True)
         self.gw_distance = log['gw_dist']
@@ -175,3 +177,32 @@ def gromov_wasserstein_copy(
             type_as=C10,
         )
 
+
+class SupervisedPenaltyForOppositePhenotypeTests(UnsupervisedTransportTest):
+    """
+    Runs multiple SupervisedPenaltyForOppositePhenotypeTest with different alpha values.
+    """
+    def run_test(self):
+        print(f"Running test {self.__class__.__name__}...")
+
+        # create folder for results
+        os.makedirs(self.results_folder_name, exist_ok=True)
+
+        print("Showing variance pre-transport...")
+        self.show_variance_pre_transport()
+
+        # TODO: receive alpha values as an arg
+        for alpha in [1e-9, 1e-7, 1e-5, 1e-3, 1e-1, 1, 10, 100]:
+            print(f"\n\nRunning test with {alpha=}...\n")
+            test = SupervisedPenaltyForOppositePhenotypeTest(alpha=alpha, should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
+            print("Running transport...")
+            test.transport()
+
+            print("Showing variance post-transport...")
+            os.makedirs(self._get_file_path(f'alpha_{alpha}'), exist_ok=True)  # each iteration in its own folder
+            test.results_folder_name = os.path.join(self.results_folder_name, f'alpha_{alpha}')
+            test.show_variance_post_transport()
+            print("Testing signal...")
+            test.test_signal()
+
+        print("Test complete.")

@@ -10,7 +10,7 @@ import optimal_transport
 import data_utils
 
 class OptimalTransportTest:
-    def __init__(self, source_dataset, target_dataset, should_run_pcoa=False, should_show_pcoa=False, source_dataset_name='source', target_dataset_name='target'):
+    def __init__(self, source_dataset, target_dataset, should_run_pcoa=False, should_show_pcoa=False, source_dataset_name='source', target_dataset_name='target', results_folder_name=None, **kwargs):
         """
         source_dataset: pandas dataframe of data being transported
         target_dataset: pandas dataframe of data being used as reference to be transported onto
@@ -18,10 +18,11 @@ class OptimalTransportTest:
         should_show_pcoa: whether to show PCoA plots (or just write to file). is ignored if should_run_pcoa is False.
         source_dataset_name: name of the source dataset (appears in the plots)
         target_dataset_name: name of the target dataset (appears in the plots)
+        results_folder_name: folder where results will be saved. if None, defaults to 'results/<class name>'
         """
         self.should_run_pcoa = should_run_pcoa
         self.should_show_pcoa = should_show_pcoa
-        self.results_folder_name = os.path.join('results', self.__class__.__name__)  # when running pcoa, where the results will be saved. currently not an argument.
+        self.results_folder_name = os.path.join('results', self.__class__.__name__) if results_folder_name is None else results_folder_name
 
         self.source_dataset = source_dataset
         self.source_otu_data = self.source_dataset[data_utils.get_otu_columns(self.source_dataset)]
@@ -45,6 +46,9 @@ class OptimalTransportTest:
         self.projected_otu_data = None
 
     def _get_file_path(self, file_name):
+        """
+        get full file path in results folder for given file name.
+        """
         return os.path.join(self.results_folder_name, file_name)
         
     def show_variance_pre_transport(self):
@@ -107,7 +111,6 @@ class OptimalTransportTest:
         print(f"Running test {self.__class__.__name__}...")
 
         # create folder for results
-        os.makedirs('results', exist_ok=True)
         os.makedirs(self.results_folder_name, exist_ok=True)
 
         print("Showing variance pre-transport...")
