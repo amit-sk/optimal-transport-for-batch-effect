@@ -12,9 +12,10 @@ def main():
     # split_database_with_entropy_sanity_check.SplitDatabaseWithEntropySanityCheck(epsilon=10**-3.5, should_run_pcoa=True, should_show_pcoa=False).run_test()
     # supervised_phenotype_weighting_test.SupervisedPhenotypeWeightingTest(should_run_pcoa=True, should_show_pcoa=False).run_test()
     # supervised_phenotype_weighting_test_with_entropy.SupervisedPhenotypeWeightingTestWithEntropy(epsilon=10**-3.5, should_run_pcoa=True, should_show_pcoa=False).run_test()
-    supervised_double_phenotype_weighing_test.SupervisedDoublePhenotypeWeightingTests(should_run_pcoa=True, should_show_pcoa=False).run_test()
+    # supervised_double_phenotype_weighing_test.SupervisedDoublePhenotypeWeightingTests(should_run_pcoa=True, should_show_pcoa=False).run_test()
     # for alpha in [1e-7, 1e-5, 1e-3, 1e-1, 1, 10]:
     #     supervised_penalty_for_opposite_phenotype_test.SupervisedPenaltyForOppositePhenotypeTest(alpha=alpha, should_run_pcoa=False).run_test()
+    supervised_penalty_for_opposite_phenotype_test.SupervisedPenaltyForOppositePhenotypeTests(should_run_pcoa=True, should_show_pcoa=False).run_test()
     print("Done.")
 
 
