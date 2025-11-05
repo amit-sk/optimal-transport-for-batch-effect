@@ -3,8 +3,8 @@ import numpy as np
 from tests.optimal_transport_test import OptimalTransportTest
 
 class OptimalTransportEntropyTest(OptimalTransportTest):
-    def __init__(self, *, epsilon=None, should_run_pcoa=False, **kwargs):
-        super().__init__(should_run_pcoa=should_run_pcoa, **kwargs)
+    def __init__(self, *, epsilon=None, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
+        super().__init__(should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, **kwargs)
         self.epsilon = epsilon
 
     def transport(self, **kwargs_for_ot):

@@ -8,7 +8,7 @@ from tests.optimal_transport_test import OptimalTransportTest
 
 
 class SanityCheck(OptimalTransportTest):
-    def __init__(self, *, should_run_pcoa=False, **kwargs):
+    def __init__(self, *, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
         """
         transporting noisy RISK data onto original RISK data.
         """
@@ -17,7 +17,7 @@ class SanityCheck(OptimalTransportTest):
         noisy_data = data_utils.renormalize_data(noisy_data)
 
         super().__init__(source_dataset=noisy_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa,
-                         source_dataset_name='noisy', target_dataset_name='orig', **kwargs)
+                         should_show_pcoa=should_show_pcoa, source_dataset_name='noisy', target_dataset_name='orig', **kwargs)
 
     def show_variance_pre_transport(self):
         risk_data = self.target_dataset.copy()
@@ -32,8 +32,12 @@ class SanityCheck(OptimalTransportTest):
 
         # show variance before alignment
         print("\nComparing variance between original and noisy (before alignment):")
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
-        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('pre_transport_by_database.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
+        
+        # TODO: document in a file as well
         fracs = variance_tests.Metrics.calc_domain_avg_FOSCTTM(risk_otu_data.values, noisy_otu_data.values, should_use_braycurtis=True)
         print(f"Average FOSCTTM score between noisy and original: {fracs.mean()}")
 
@@ -44,14 +48,14 @@ class SanityCheck(OptimalTransportTest):
         noisy_data = self.source_dataset
         noisy_otu_data = self.source_otu_data
 
+        # TODO: document in a file as well
         print(f'coupling diagonal sum: {self.coupling.diagonal().sum()}')
         fracs = variance_tests.Metrics.calc_domain_avg_FOSCTTM(risk_otu_data.values, self.projected_otu_data.values, should_use_braycurtis=True)
         print(f"Average FOSCTTM score between projected and original (post transport): {fracs.mean()}")
 
         # titration plot to measure batch effect
         if self.should_run_pcoa:
-            png_path = os.path.join('titrations', self.__class__.__name__ + '_titration.png')
-            variance_tests.Metrics.titration(self.source_dataset, self.target_dataset, self.projected_data, repeats=10, png_name=png_path)
+            variance_tests.Metrics.titration(self.source_dataset, self.target_dataset, self.projected_data, repeats=10, png_name=self._get_file_path('titration.png'))
 
         combined_data = pd.concat([risk_data, projected])
         combined_data.set_index('sample_id', inplace=True)
@@ -59,17 +63,20 @@ class SanityCheck(OptimalTransportTest):
         # compare projection and original (post transport)
         print("\nComparing variance between original and projected:")
         pairs = self._get_pairs(combined_data, '_orig', '_projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('post_transport_by_database.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         
         print("\nComparing variance between phenotypes in combined original and projected:")
-        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('post_transport_by_phenotype.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # compare projection and noisy (before and after transport)
         print("\nComparing variance between noisy and projected:")
         combined_data = pd.concat([noisy_data, projected])
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_noisy', '_projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('source_vs_projected.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # how much each projection had moved - compare orig, noisy, projected
         print("\nComparing variance between original, noisy and projected:")
@@ -77,5 +84,6 @@ class SanityCheck(OptimalTransportTest):
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_noisy', '_projected')
         pairs.extend(self._get_pairs(combined_data, '_noisy', '_orig'))
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('target_vs_source_vs_projected.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 

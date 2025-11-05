@@ -1,4 +1,3 @@
-import os.path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,12 +6,12 @@ import variance_tests
 from tests.optimal_transport_test import OptimalTransportTest
 
 class UnsupervisedTransportTest(OptimalTransportTest):
-    def __init__(self, *, should_run_pcoa=False, **kwargs):
+    def __init__(self, *, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
         risk_data = pd.read_csv("risk_data.csv")
         mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
 
         super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa,
-                         source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
+                         should_show_pcoa=should_show_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
 
     def show_variance_pre_transport(self):
         # create combined data (to show variance before alignment)
@@ -22,22 +21,24 @@ class UnsupervisedTransportTest(OptimalTransportTest):
 
         # show variance before alignment
         print("\nComparing variance between risk and mucosalibd (before alignment):")
-        variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         print("\nComparing variance between phenotypes in combined risk and mucosalibd:")
-        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def show_variance_post_transport(self):
         risk_data = self.target_dataset.copy()
         mucosalibd_data = self.source_dataset.copy()
         projected = self.projected_data.copy()
 
-        if self.should_run_pcoa:
-            self._observe_coupling_matrix()
-
         # titration plot to measure batch effect
         if self.should_run_pcoa:
-            png_path = os.path.join('titrations', self.__class__.__name__ + '_titration.png')
-            variance_tests.Metrics.titration(self.source_dataset, self.target_dataset, self.projected_data, repeats=10, png_name=png_path)
+            variance_tests.Metrics.titration(self.source_dataset, self.target_dataset, self.projected_data, repeats=10, png_name=self._get_file_path('titration.png'))
+
+        # TODO: debug
+        # if self.should_run_pcoa:
+        #     self._observe_coupling_matrix()
 
         # compare projection and risk (post transport)
         combined_data = pd.concat([risk_data, projected])
@@ -45,16 +46,19 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         combined_data.set_index('sample_id', inplace=True)
 
         print("\nComparing variance between risk and projected:")
-        variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('post_transport_by_databse.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         print("\nComparing variance between phenotypes in combined risk and projected:")
-        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('post_transport_by_phenotype.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         print("\nComparing variance between dataset+phenotype in combined risk and projected:")
         risk_data['dataset+phenotype'] = 'RISK_' + risk_data['phenotype']
         projected['dataset+phenotype'] = 'Projected_' + projected['phenotype']
         combined_data = pd.concat([risk_data, projected])
         combined_data.set_index('sample_id', inplace=True)
-        variance_tests.show_variance(combined_data, 'dataset+phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset+phenotype', file_path=self._get_file_path('post_transport_by_dataset_and_phenotype.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # compare projection and mucosalibd (before and after transport)
         print("\nComparing variance between mucosalibd (original) and projected:")
@@ -62,7 +66,8 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('source_vs_projected.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # how much each projection had moved - compare risk, mucosalibd, projected
         print("\nComparing variance between risk, mucosalibd and projected:")
@@ -70,7 +75,8 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('target_vs_source_vs_projected.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def _observe_coupling_matrix(self):
         """

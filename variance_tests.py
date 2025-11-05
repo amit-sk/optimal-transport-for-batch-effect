@@ -162,12 +162,14 @@ class Draw:
         ax.add_patch(ell)
 
 
-    def run_pcoa(data, group_col, seed=data_utils.PROJECT_SEED, distance_matrix=None, pcoa_pairs=None, subtitle=None):
+    def run_pcoa(data, group_col, file_path, should_show_pcoa=True, seed=data_utils.PROJECT_SEED, distance_matrix=None, pcoa_pairs=None, subtitle=None):
         if distance_matrix is None:
             distance_matrix = beta_diversity(metric="braycurtis", counts=data.values, ids=data.index)
 
         ordination_results = pcoa(distance_matrix, seed=seed)
         mod = ordination_results.samples.iloc[:, :2].values
+
+        plt.figure(figsize=(10,8), dpi=500)
 
         colors = plt.get_cmap("tab10")
         for group in np.unique(group_col):
@@ -183,7 +185,10 @@ class Draw:
         plt.legend(title=group_col.name)
         plt.suptitle("PCoA of OTU Relative Abundance")
         plt.title(subtitle, fontsize=10)
-        plt.show()
+        plt.savefig(file_path)
+        if should_show_pcoa:
+            plt.show()
+        plt.close()
 
     def _draw_titration_internal(fig, all_titration_results):
         row = 1  # working with single row
@@ -232,16 +237,16 @@ class Draw:
         fig.write_image(png_name, height=600, width=800, scale=6, format='png')
 
 
-def show_variance(data, group_col_name, should_run_pcoa=True, pcoa_pairs=None):
+def show_variance(data, group_col_name, file_path, should_run_pcoa=True, should_show_pcoa=True, pcoa_pairs=None):
     otu_data = data[data_utils.get_otu_columns(data)]
     distance_matrix = beta_diversity(metric="braycurtis", counts=otu_data.values, ids=otu_data.index)
     permanova_results = Metrics.get_permanova_results(otu_data, data[group_col_name], distance_matrix=distance_matrix)
     print(f"PERMANOVA results:\n{permanova_results}\n")
-    subtitle = f"PERMANOVA pvalue = {permanova_results['p-value']:.3f}"
+    subtitle = f"PERMANOVA pvalue = {permanova_results['p-value']:.3f}, PERMANOVA statistic = {permanova_results['test statistic']:.3f}"
 
     # it's slow... so optional
     if should_run_pcoa:
-        Draw.run_pcoa(otu_data, data[group_col_name], distance_matrix=distance_matrix, pcoa_pairs=pcoa_pairs, subtitle=subtitle)
+        Draw.run_pcoa(otu_data, data[group_col_name], file_path, should_show_pcoa=should_show_pcoa, distance_matrix=distance_matrix, pcoa_pairs=pcoa_pairs, subtitle=subtitle)
 
 
 def main():

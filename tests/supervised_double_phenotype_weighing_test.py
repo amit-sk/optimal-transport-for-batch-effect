@@ -15,11 +15,11 @@ class SupervisedDoublePhenotypeWeightingTest(OptimalTransportTest):
     For each phenotype, weighting the target distribution so that the current phenotype in the source is more represented, according to weight_for_current_phenotype.
     class SupervisedDoublePhenotypeWeightingTests below runs two of these tests, one for each phenotype, for multiple weights.
     """
-    def __init__(self, *, source_dataset, target_dataset, current_phenotype, weight_for_current_phenotype=0.8, should_run_pcoa=False, **kwargs):
+    def __init__(self, *, source_dataset, target_dataset, current_phenotype, weight_for_current_phenotype=0.8, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
         source_data_for_phenotype = source_dataset[source_dataset['phenotype'] == current_phenotype].reset_index(drop=True)
         
         super().__init__(source_dataset=source_data_for_phenotype, target_dataset=target_dataset, should_run_pcoa=should_run_pcoa,
-                         source_dataset_name='mucosalibd_'+current_phenotype, target_dataset_name='risk', **kwargs)
+                         should_show_pcoa=should_show_pcoa, source_dataset_name='mucosalibd_'+current_phenotype, target_dataset_name='risk', **kwargs)
 
         self.current_phenotype = current_phenotype
         self.weight_for_current_phenotype = weight_for_current_phenotype
@@ -43,14 +43,14 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
     Does this for weights: 40-60, 30-70, 20-80, 10-90.
     """
     
-    def __init__(self, should_run_pcoa=False, **kwargs):
+    def __init__(self, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
         risk_data = pd.read_csv("risk_data.csv")
         self.original_target_dataset = risk_data.copy()
         mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
         self.original_source_dataset = mucosalibd_data.copy()
 
         super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa,
-                         source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
+                         should_show_pcoa=should_show_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
 
     def show_variance_pre_transport(self):
         # create combined data (to show variance before alignment)
@@ -60,9 +60,11 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
 
         # show variance before alignment
         print("\nComparing variance between risk and mucosalibd (before alignment):")
-        variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         print("\nComparing variance between phenotypes in combined risk and mucosalibd:")
-        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # TODO: show var between each phenotype separately in combined dataset?
 
@@ -71,12 +73,15 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         mucosalibd_data = self.source_dataset.copy()
         projected = self.projected_data.copy()
 
+        # debug
         # if self.should_run_pcoa:
         #     self._observe_coupling_matrix()
 
+        current_weight_name = f'weight_{int(weight_for_current_phenotype*100)}'
+
         # titration plot to measure batch effect
         if self.should_run_pcoa:
-            png_path = os.path.join('titrations', self.__class__.__name__ + f'_titration_weight_{int(weight_for_current_phenotype*100)}.png')
+            png_path = self._get_file_path(f'titration_{current_weight_name}.png')
             variance_tests.Metrics.titration(self.source_dataset, self.target_dataset, self.projected_data, repeats=10, png_name=png_path)
 
         # compare projection and risk (post transport)
@@ -86,16 +91,19 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         combined_data.set_index('sample_id', inplace=True)
 
         print("\nComparing variance between risk and projected:")
-        variance_tests.show_variance(combined_data, 'dataset', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path(f'post_transport_by_database_{current_weight_name}.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         print("\nComparing variance between phenotypes in combined risk and projected:")
-        variance_tests.show_variance(combined_data, 'phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path(f'post_transport_by_phenotype_{current_weight_name}.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         print("\nComparing variance between dataset+phenotype in combined risk and projected:")
         risk_data['dataset+phenotype'] = 'RISK_' + risk_data['phenotype']
         projected['dataset+phenotype'] = 'Projected_' + projected['phenotype']
         combined_data = pd.concat([risk_data, projected])
         combined_data.set_index('sample_id', inplace=True)
-        variance_tests.show_variance(combined_data, 'dataset+phenotype', should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset+phenotype', file_path=self._get_file_path(f'post_transport_by_dataset_and_phenotype_{current_weight_name}.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # compare projection and mucosalibd (before and after transport)
         print("\nComparing variance between mucosalibd (original) and projected:")
@@ -103,7 +111,8 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path(f'source_vs_projected_{current_weight_name}.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # how much each projection had moved - compare risk, mucosalibd, projected
         print("\nComparing variance between risk, mucosalibd and projected:")
@@ -111,10 +120,16 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, should_run_pcoa=self.should_run_pcoa)
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path(f'target_vs_source_vs_projected_{current_weight_name}.png'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def run_test(self):
         print(f"Running test {self.__class__.__name__}...")
+
+        # create folder for results
+        os.makedirs('results', exist_ok=True)
+        os.makedirs(self.results_folder_name, exist_ok=True)
+
         print("Showing variance pre-transport...")
         self.show_variance_pre_transport()
 
