@@ -46,7 +46,7 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         combined_data.set_index('sample_id', inplace=True)
 
         print("\nComparing variance between risk and projected:")
-        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('post_transport_by_databse.png'),
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('post_transport_by_database.png'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         print("\nComparing variance between phenotypes in combined risk and projected:")
         variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('post_transport_by_phenotype.png'),
