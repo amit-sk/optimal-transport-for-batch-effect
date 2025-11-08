@@ -169,7 +169,7 @@ class Draw:
         ordination_results = pcoa(distance_matrix, seed=seed)
         mod = ordination_results.samples.iloc[:, :2].values
 
-        plt.figure(figsize=(10,8), dpi=500)
+        plt.figure(figsize=(10,8))
 
         colors = plt.get_cmap("tab10")
         for group in np.unique(group_col):
@@ -185,7 +185,7 @@ class Draw:
         plt.legend(title=group_col.name)
         plt.suptitle("PCoA of OTU Relative Abundance")
         plt.title(subtitle, fontsize=10)
-        plt.savefig(file_path)
+        plt.savefig(file_path, dpi=500)
         if should_show_pcoa:
             plt.show()
         plt.close()
