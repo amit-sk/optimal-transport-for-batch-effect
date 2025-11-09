@@ -1,3 +1,3 @@
 # Optimal Transfer For Batch Effect
 
-Undergraduates project testing the use for Gromov-Wasserstein Optimal Transfer as a method for combatting batch effect in microbiome data.
+Undergraduates project testing the use of Gromov-Wasserstein Optimal Transport as a method for combatting batch effect in microbiome data.
