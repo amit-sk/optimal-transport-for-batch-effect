@@ -3,8 +3,10 @@ import ot
 import pandas as pd
 import numpy as np
 from scipy.spatial import distance
+from scipy import stats
 from sklearn import metrics
-from sklearn.ensemble import RandomForestClassifier
+from sklearn import model_selection
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import optimal_transport
 import data_utils
@@ -65,6 +67,7 @@ class OptimalTransportTest:
         self.projected_data = self.projected_otu_data.copy()
         self.projected_data['dataset'] = 'projected'
         self.projected_data['phenotype'] = self.source_dataset['phenotype']
+        self.projected_data['age'] = self.source_dataset['age']
         self.projected_data['sample_id'] = self.source_dataset['sample_id'].str.replace('_'+self.source_dataset_name ,'_projected')
 
     def transport(self, **kwargs_for_ot):
@@ -85,29 +88,60 @@ class OptimalTransportTest:
         target_dataset = combined[combined['dataset'] == self.target_dataset_name]
         projection = combined[combined['dataset'] == 'projected']
 
-        source_data = source_dataset[data_utils.get_otu_columns(source_dataset)]
-        source_phenotype = source_dataset['phenotype']
-        target_data = target_dataset[data_utils.get_otu_columns(target_dataset)]
-        target_phenotype = target_dataset['phenotype']
-        projection_data = projection[data_utils.get_otu_columns(projection)]
-        projection_phenotype = projection['phenotype']
+        with open(self._get_file_path('signal_retention_test.txt'), 'w') as f:
+            print('\nTesting phenotype signal using Random Forest Classifier')
+            f.write('Testing phenotype signal using Random Forest Classifier\n')
 
-        classifier = RandomForestClassifier(random_state=data_utils.PROJECT_SEED)
-        classifier.fit(target_data, target_phenotype)
+            source_data = source_dataset[data_utils.get_otu_columns(source_dataset)]
+            source_phenotype = source_dataset['phenotype']
+            source_age = source_dataset['age']
+            target_data = target_dataset[data_utils.get_otu_columns(target_dataset)]
+            target_phenotype = target_dataset['phenotype']
+            target_age = target_dataset['age']
+            projection_data = projection[data_utils.get_otu_columns(projection)]
+            projection_phenotype = projection['phenotype']
+            projection_age = projection['age']
 
-        # show results on source data before transport
-        source_pred = classifier.predict(source_data)
-        source_acc = (source_pred == source_phenotype).mean()
-        source_probability_scores = classifier.predict_proba(source_data)[:, classifier.classes_ == 'CD']
-        source_auc_roc = metrics.roc_auc_score((source_phenotype == 'CD').astype(int), source_probability_scores)
-        print(f"Source data before transport - Accuracy: {source_acc:.3f}, AUC-ROC: {source_auc_roc:.3f}")
-        
-        # show results on projection data after transport
-        projection_pred = classifier.predict(projection_data)
-        projection_acc = (projection_pred == projection_phenotype).mean()
-        projection_probability_scores = classifier.predict_proba(projection_data)[:, classifier.classes_ == 'CD']
-        projection_auc_roc = metrics.roc_auc_score((projection_phenotype == 'CD').astype(int), projection_probability_scores)
-        print(f"Projection data after transport - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}")
+            classifier = RandomForestClassifier(random_state=data_utils.PROJECT_SEED)
+            classifier.fit(target_data, target_phenotype)
+
+            # show results on source data before transport
+            source_pred = classifier.predict(source_data)
+            source_acc = (source_pred == source_phenotype).mean()
+            source_probability_scores = classifier.predict_proba(source_data)[:, classifier.classes_ == 'CD']
+            source_auc_roc = metrics.roc_auc_score((source_phenotype == 'CD').astype(int), source_probability_scores)
+            print(f"Source data before transport classification results - Accuracy: {source_acc:.3f}, AUC-ROC: {source_auc_roc:.3f}")
+            f.write(f"Source data before transport classification results - Accuracy: {source_acc:.3f}, AUC-ROC: {source_auc_roc:.3f}\n")
+            
+            # show results on projection data after transport
+            projection_pred = classifier.predict(projection_data)
+            projection_acc = (projection_pred == projection_phenotype).mean()
+            projection_probability_scores = classifier.predict_proba(projection_data)[:, classifier.classes_ == 'CD']
+            projection_auc_roc = metrics.roc_auc_score((projection_phenotype == 'CD').astype(int), projection_probability_scores)
+            print(f"Projection data after transport classification results - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}")
+            f.write(f"Projection data after transport classification results - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}\n")
+
+            print("\nTesting age signal using Random Forest Regressor")
+            f.write('\nTesting age signal using Random Forest Regressor\n')
+            regressor = RandomForestRegressor(random_state=data_utils.PROJECT_SEED)
+            train_data, test_data, train_age, test_age = model_selection.train_test_split(source_data, source_age, test_size=0.4, random_state=data_utils.PROJECT_SEED)
+            regressor.fit(train_data, train_age)
+
+            source_pred = regressor.predict(test_data)
+            source_mse = metrics.mean_squared_error(test_age, source_pred)
+            source_corr = stats.pearsonr(test_age, source_pred)
+            print(f"Source data before transport age regression results - MSE: {source_mse:.3f}, Pearson correlation: {source_corr[0]:.3f} (p-value: {source_corr[1]:.3f})")
+            f.write(f"Source data before transport age regression results - MSE: {source_mse:.3f}, Pearson correlation: {source_corr[0]:.3f} (p-value: {source_corr[1]:.3f})\n")
+
+            regressor = RandomForestRegressor(random_state=data_utils.PROJECT_SEED)
+            train_data, test_data, train_age, test_age = model_selection.train_test_split(projection_data, projection_age, test_size=0.4, random_state=data_utils.PROJECT_SEED)
+            regressor.fit(train_data, train_age)
+
+            projection_pred = regressor.predict(test_data)
+            projection_mse = metrics.mean_squared_error(test_age, projection_pred)
+            projection_corr = stats.pearsonr(test_age, projection_pred)
+            print(f"Projection data after transport age regression results - MSE: {projection_mse:.3f}, Pearson correlation: {projection_corr[0]:.3f} (p-value: {projection_corr[1]:.3f})")
+            f.write(f"Projection data after transport age regression results - MSE: {projection_mse:.3f}, Pearson correlation: {projection_corr[0]:.3f} (p-value: {projection_corr[1]:.3f})\n")
 
     def run_test(self):
         print(f"\nRunning test {self.__class__.__name__}...")
@@ -123,7 +157,7 @@ class OptimalTransportTest:
         self.show_variance_post_transport()
         print("Testing signal...")
         self.test_signal()
-        print("Test complete.")
+        print("\nTest complete.")
 
     @staticmethod
     def _get_pairs(combined_data, suffix1, suffix2):
