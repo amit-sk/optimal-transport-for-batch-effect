@@ -52,7 +52,7 @@ def create_noisy_data(data, proportion_of_std=0.1, seed=PROJECT_SEED):
     
     for sample_id, row in copy.iterrows():
         for idx, cell in row.items():
-            if idx in ['sample_id', 'phenotype'] or cell == 0.0:
+            if idx in ['sample_id', 'phenotype', 'age'] or cell == 0.0:
                 continue
 
             std = stds[idx] * proportion_of_std

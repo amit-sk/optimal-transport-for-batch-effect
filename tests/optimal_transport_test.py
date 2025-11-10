@@ -31,6 +31,7 @@ class OptimalTransportTest:
         self.source_dataset_name = source_dataset_name
         self.source_dataset['dataset'] = self.source_dataset_name
         self.source_dataset['sample_id'] = self.source_dataset['sample_id'] + '_' + self.source_dataset_name
+        self.source_dataset['age'] = self.source_dataset['age']
 
         self.target_dataset = target_dataset
         self.target_otu_data = self.target_dataset[data_utils.get_otu_columns(self.target_dataset)]
@@ -39,6 +40,7 @@ class OptimalTransportTest:
         self.target_dataset_name = target_dataset_name
         self.target_dataset['dataset'] = self.target_dataset_name
         self.target_dataset['sample_id'] = self.target_dataset['sample_id'] + '_' + self.target_dataset_name
+        self.target_dataset['age'] = self.target_dataset['age']
 
         self.gw_distance = None
         self.coupling = None

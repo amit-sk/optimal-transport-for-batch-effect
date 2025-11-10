@@ -28,7 +28,8 @@ def obtain_relative_abundance_data(data, metadata):
         sample_data = data[['# OTU', sample_id]].copy()
         sample_data[sample_id] = sample_data[sample_id] / sample_data[sample_id].sum()
 
-        new_row = {'sample_id': sample_id, 'phenotype': phenotype}
+        age = sample_meta.age.iloc[0]
+        new_row = {'sample_id': sample_id, 'phenotype': phenotype, 'age': round(age) if not pd.isna(age) else age}
         new_row.update({int(r['# OTU']):r[sample_id] for _, r in sample_data.iterrows()})
         processed_data = pd.concat([processed_data, pd.DataFrame([new_row])], ignore_index=True)
 
