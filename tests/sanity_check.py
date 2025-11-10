@@ -34,6 +34,7 @@ class SanityCheck(OptimalTransportTest):
         print("\nComparing variance between original and noisy (before alignment):")
         variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('pre_transport_by_database.png'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
+        print("\nComparing variance between phenotypes in combined original and noisy:")
         variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype.png'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         

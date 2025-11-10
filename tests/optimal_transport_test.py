@@ -108,7 +108,7 @@ class OptimalTransportTest:
         print(f"Projection data after transport - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}")
 
     def run_test(self):
-        print(f"Running test {self.__class__.__name__}...")
+        print(f"\nRunning test {self.__class__.__name__}...")
 
         # create folder for results
         os.makedirs(self.results_folder_name, exist_ok=True)

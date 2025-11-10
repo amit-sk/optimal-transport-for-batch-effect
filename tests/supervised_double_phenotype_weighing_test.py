@@ -119,7 +119,7 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         # TODO: show var between each phenotype separately in combined dataset?
 
     def run_test(self):
-        print(f"Running test {self.__class__.__name__}...")
+        print(f"\nRunning test {self.__class__.__name__}...")
 
         # create folder for results
         os.makedirs(self.results_folder_name, exist_ok=True)

@@ -183,7 +183,7 @@ class SupervisedPenaltyForOppositePhenotypeTests(UnsupervisedTransportTest):
     Runs multiple SupervisedPenaltyForOppositePhenotypeTest with different alpha values.
     """
     def run_test(self):
-        print(f"Running test {self.__class__.__name__}...")
+        print(f"\nRunning test {self.__class__.__name__}...")
 
         # create folder for results
         os.makedirs(self.results_folder_name, exist_ok=True)
