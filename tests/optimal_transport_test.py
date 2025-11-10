@@ -121,27 +121,45 @@ class OptimalTransportTest:
             print(f"Projection data after transport classification results - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}")
             f.write(f"Projection data after transport classification results - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}\n")
 
-            print("\nTesting age signal using Random Forest Regressor")
-            f.write('\nTesting age signal using Random Forest Regressor\n')
-            regressor = RandomForestRegressor(random_state=data_utils.PROJECT_SEED)
-            train_data, test_data, train_age, test_age = model_selection.train_test_split(source_data, source_age, test_size=0.4, random_state=data_utils.PROJECT_SEED)
-            regressor.fit(train_data, train_age)
+            regressor_iterations = 20
+            print(f"\nTesting age signal using Random Forest Regressor (averaging {regressor_iterations} iterations)")
+            f.write(f"\nTesting age signal using Random Forest Regressor (averaging {regressor_iterations} iterations)\n")
 
-            source_pred = regressor.predict(test_data)
-            source_mse = metrics.mean_squared_error(test_age, source_pred)
-            source_corr = stats.pearsonr(test_age, source_pred)
-            print(f"Source data before transport age regression results - MSE: {source_mse:.3f}, Pearson correlation: {source_corr[0]:.3f} (p-value: {source_corr[1]:.3f})")
-            f.write(f"Source data before transport age regression results - MSE: {source_mse:.3f}, Pearson correlation: {source_corr[0]:.3f} (p-value: {source_corr[1]:.3f})\n")
+            source_mse, source_corr = self._run_regressor(source_data, source_age, iterations=regressor_iterations)
+            corr_values = [c[0] for c in source_corr]
+            p_values = [c[1] for c in source_corr]
+            print(f"\nSource data before transport age regression results:\
+                  \nMSE mean: {np.mean(source_mse):.3f} (std: {np.std(source_mse):.3f})\
+                  \nPearson correlation mean: {np.mean(corr_values):.3f} (std: {np.std(corr_values):.3f}), p-value mean: {np.mean(p_values):.3f} (std: {np.std(p_values):.3f})")
+            f.write(f"\nSource data before transport age regression results:\
+                  \nMSE mean: {np.mean(source_mse):.3f} (std: {np.std(source_mse):.3f})\
+                  \nPearson correlation mean: {np.mean(corr_values):.3f} (std: {np.std(corr_values):.3f}), p-value mean: {np.mean(p_values):.3f} (std: {np.std(p_values):.3f})\n")
 
-            regressor = RandomForestRegressor(random_state=data_utils.PROJECT_SEED)
-            train_data, test_data, train_age, test_age = model_selection.train_test_split(projection_data, projection_age, test_size=0.4, random_state=data_utils.PROJECT_SEED)
-            regressor.fit(train_data, train_age)
+            projection_mse, projection_corr = self._run_regressor(projection_data, projection_age, iterations=regressor_iterations)
+            corr_values = [c[0] for c in projection_corr]
+            p_values = [c[1] for c in projection_corr]
+            print(f"\nProjection data after transport age regression results:\
+                  \nMSE mean: {np.mean(projection_mse):.3f} (std: {np.std(projection_mse):.3f})\
+                  \nPearson correlation mean: {np.mean(corr_values):.3f} (std: {np.std(corr_values):.3f}), p-value mean: {np.mean(p_values):.3f} (std: {np.std(p_values):.3f})")
+            f.write(f"\nProjection data after transport age regression results:\
+                  \nMSE mean: {np.mean(projection_mse):.3f} (std: {np.std(projection_mse):.3f})\
+                  \nPearson correlation mean: {np.mean(corr_values):.3f} (std: {np.std(corr_values):.3f}), p-value mean: {np.mean(p_values):.3f} (std: {np.std(p_values):.3f})\n")
 
-            projection_pred = regressor.predict(test_data)
-            projection_mse = metrics.mean_squared_error(test_age, projection_pred)
-            projection_corr = stats.pearsonr(test_age, projection_pred)
-            print(f"Projection data after transport age regression results - MSE: {projection_mse:.3f}, Pearson correlation: {projection_corr[0]:.3f} (p-value: {projection_corr[1]:.3f})")
-            f.write(f"Projection data after transport age regression results - MSE: {projection_mse:.3f}, Pearson correlation: {projection_corr[0]:.3f} (p-value: {projection_corr[1]:.3f})\n")
+    def _run_regressor(self, x, y, iterations=30):
+        regressor = RandomForestRegressor(random_state=data_utils.PROJECT_SEED)
+        mse_list = []
+        corr_list = []
+        for i in range(iterations):
+            train_x, test_x, train_y, test_y = model_selection.train_test_split(x, y, test_size=0.4, random_state=data_utils.PROJECT_SEED + i)
+            regressor.fit(train_x, train_y)
+
+            pred = regressor.predict(test_x)
+            mse = metrics.mean_squared_error(test_y, pred)
+            corr = stats.pearsonr(test_y, pred)
+            mse_list.append(mse)
+            corr_list.append(corr)
+
+        return mse_list, corr_list
 
     def run_test(self):
         print(f"\nRunning test {self.__class__.__name__}...")
