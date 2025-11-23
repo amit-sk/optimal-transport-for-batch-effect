@@ -1,0 +1,1 @@
+Average FOSCTTM score between noisy and original: 1.1582385508119253e-05
