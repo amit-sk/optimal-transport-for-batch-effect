@@ -16,11 +16,11 @@ class SupervisedWeightingTestForPhenotype(OptimalTransportTest):
     For each phenotype, weighting the target distribution so that the current phenotype in the source is more represented, according to weight_for_current_phenotype.
     class SupervisedDoublePhenotypeWeightingTests below runs two of these tests, one for each phenotype, for multiple weights. This is not meant to be run directly.
     """
-    def __init__(self, *, source_dataset, target_dataset, current_phenotype, weight_for_current_phenotype=0.8, should_run_pcoa=False, should_show_pcoa=False, source_dataset_name='source', target_dataset_name='target', **kwargs):
+    def __init__(self, *, source_dataset, target_dataset, current_phenotype, weight_for_current_phenotype=0.8, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, source_dataset_name='source', target_dataset_name='target', **kwargs):
         source_data_for_phenotype = source_dataset[source_dataset['phenotype'] == current_phenotype].reset_index(drop=True)
         
         super().__init__(source_dataset=source_data_for_phenotype, target_dataset=target_dataset,
-                         should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa,
+                         should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, should_test_signal_retention=should_test_signal_retention,
                          source_dataset_name=source_dataset_name+current_phenotype, target_dataset_name=target_dataset_name, **kwargs)
 
         self.current_phenotype = current_phenotype
@@ -48,9 +48,9 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         """
         internal class which runs the two transports per phenotype for a given weight.
         """
-        def __init__(self, *, weight_for_current_phenotype, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
+        def __init__(self, *, weight_for_current_phenotype, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
             weight_str = f'weight_{int(weight_for_current_phenotype*100)}'
-            super().__init__(should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa,
+            super().__init__(should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, should_test_signal_retention=should_test_signal_retention,
                             results_folder_name=os.path.join('results', SupervisedDoublePhenotypeWeightingTests.__name__, weight_str), **kwargs)
 
             self.weight_for_current_phenotype = weight_for_current_phenotype
@@ -89,18 +89,19 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
             self.transport()
             print("Showing variance post-transport...")
             self.show_variance_post_transport()
-            print("Testing signal...")
-            self.test_signal()
+            if self.should_test_signal_retention:
+                print("Testing signal...")
+                self.test_signal()
             print("Test complete.")
 
 
-    def __init__(self, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
+    def __init__(self, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
         # read here so the csv are only read once
         risk_data = pd.read_csv("risk_data.csv")
         mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
 
-        super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa,
-                         should_show_pcoa=should_show_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
+        super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa,
+                         should_test_signal_retention=should_test_signal_retention, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
 
     def show_variance_pre_transport(self):
         # create combined data (to show variance before alignment)
@@ -110,10 +111,10 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
 
         # show variance before alignment
         print("\nComparing variance between risk and mucosalibd (before alignment):")
-        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database.png'),
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         print("\nComparing variance between phenotypes in combined risk and mucosalibd:")
-        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype.png'),
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # TODO: show var between each phenotype separately in combined dataset?

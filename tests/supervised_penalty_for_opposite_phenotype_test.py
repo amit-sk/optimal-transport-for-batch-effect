@@ -10,17 +10,23 @@ class SupervisedPenaltyForOppositePhenotypeTest(UnsupervisedTransportTest):
     Adds a penalty matrix to the Gromov-Wasserstein transport problem that penalizes transport between samples with opposite phenotypes.
     Alpha parameter controls the weight of the penalty (alpha=1 means penalty of 1).
     """
-    def __init__(self, *, alpha=1, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
-        super().__init__(should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, **kwargs)
+    def __init__(self, *, alpha=1, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
+        super().__init__(should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa,
+                         should_test_signal_retention=should_test_signal_retention, **kwargs)
         self.alpha = alpha
 
     def transport(self):
-        print(f'{self.alpha=} as penalty weight for opposite phenotypes')
-        M = self.alpha * self._get_penalty_matrix_for_opposite_phenotypes()
-        self.coupling, log = gromov_wasserstein_copy(self.target_distance_matrix, self.source_distance_matrix, M=M, verbose=False, log=True)
-        self.gw_distance = log['gw_dist']
-        print(f'GW distance: {self.gw_distance}')
-        self._get_projected()
+        with open(self._get_file_path('transport_log.txt'), 'w') as f:
+            print(f'{self.alpha=} as penalty weight for opposite phenotypes')
+            f.write(f'{self.alpha=} as penalty weight for opposite phenotypes\n')
+
+            M = self.alpha * self._get_penalty_matrix_for_opposite_phenotypes()
+            self.coupling, log = gromov_wasserstein_copy(self.target_distance_matrix, self.source_distance_matrix, M=M, verbose=False, log=True)
+            self.gw_distance = log['gw_dist']
+
+            print(f'GW distance: {self.gw_distance}')
+            f.write(f'GW distance: {self.gw_distance}\n')
+            self._get_projected()
 
     def _get_penalty_matrix_for_opposite_phenotypes(self):
         """
@@ -202,7 +208,8 @@ class SupervisedPenaltyForOppositePhenotypeTests(UnsupervisedTransportTest):
             os.makedirs(self._get_file_path(f'alpha_{alpha}'), exist_ok=True)  # each iteration in its own folder
             test.results_folder_name = os.path.join(self.results_folder_name, f'alpha_{alpha}')
             test.show_variance_post_transport()
-            print("Testing signal...")
-            test.test_signal()
+            if self.should_test_signal_retention:
+                print("Testing signal...")
+                test.test_signal()
 
         print("Test complete.")

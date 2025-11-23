@@ -6,12 +6,13 @@ import variance_tests
 from tests.optimal_transport_test import OptimalTransportTest
 
 class UnsupervisedTransportTest(OptimalTransportTest):
-    def __init__(self, *, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
+    def __init__(self, *, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
         risk_data = pd.read_csv("risk_data.csv")
         mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
 
         super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa,
-                         should_show_pcoa=should_show_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
+                         should_show_pcoa=should_show_pcoa, should_test_signal_retention=should_test_signal_retention,
+                         source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
 
     def show_variance_pre_transport(self):
         # create combined data (to show variance before alignment)
@@ -21,10 +22,10 @@ class UnsupervisedTransportTest(OptimalTransportTest):
 
         # show variance before alignment
         print("\nComparing variance between risk and mucosalibd (before alignment):")
-        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database.png'),
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         print("\nComparing variance between phenotypes in combined risk and mucosalibd:")
-        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype.png'),
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def show_variance_post_transport(self):
@@ -46,10 +47,10 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         combined_data.set_index('sample_id', inplace=True)
 
         print("\nComparing variance between risk and projected:")
-        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('post_transport_by_database.png'),
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('post_transport_by_database'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         print("\nComparing variance between phenotypes in combined risk and projected:")
-        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('post_transport_by_phenotype.png'),
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('post_transport_by_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         print("\nComparing variance between dataset+phenotype in combined risk and projected:")
@@ -57,7 +58,7 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         projected['dataset+phenotype'] = 'Projected_' + projected['phenotype']
         combined_data = pd.concat([risk_data, projected])
         combined_data.set_index('sample_id', inplace=True)
-        variance_tests.show_variance(combined_data, 'dataset+phenotype', file_path=self._get_file_path('post_transport_by_dataset_and_phenotype.png'),
+        variance_tests.show_variance(combined_data, 'dataset+phenotype', file_path=self._get_file_path('post_transport_by_dataset_and_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # compare projection and mucosalibd (before and after transport)
@@ -66,7 +67,7 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('source_vs_projected.png'),
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('source_vs_projected'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # how much each projection had moved - compare risk, mucosalibd, projected
@@ -75,7 +76,7 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('target_vs_source_vs_projected.png'),
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('target_vs_source_vs_projected'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def _observe_coupling_matrix(self):

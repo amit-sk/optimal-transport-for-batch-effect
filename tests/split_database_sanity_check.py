@@ -9,7 +9,7 @@ from tests.optimal_transport_test import OptimalTransportTest
 
 
 class SplitDatabaseSanityCheck(OptimalTransportTest):
-    def __init__(self, *, should_run_pcoa=False, should_show_pcoa=False, **kwargs):
+    def __init__(self, *, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
         """
         Split risk dataset and transport one half onto the other half.
         """
@@ -22,7 +22,7 @@ class SplitDatabaseSanityCheck(OptimalTransportTest):
         risk_data_1 = risk_data_1.reset_index(drop=True)
         risk_data_2 = risk_data_2.reset_index(drop=True)
 
-        super().__init__(risk_data_1, risk_data_2, should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, **kwargs)
+        super().__init__(risk_data_1, risk_data_2, should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, should_test_signal_retention=should_test_signal_retention, **kwargs)
 
     def show_variance_pre_transport(self):
         # create combined data
@@ -31,9 +31,9 @@ class SplitDatabaseSanityCheck(OptimalTransportTest):
 
         # show variance before alignment
         print("\nComparing variance between target and source (before alignment):")
-        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database.png'),
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype.png'),
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def show_variance_post_transport(self):
@@ -50,11 +50,11 @@ class SplitDatabaseSanityCheck(OptimalTransportTest):
 
         # compare projection and original (post transport)
         print("\nComparing variance between target and projected:")
-        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('post_transport_by_database.png'),
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('post_transport_by_database'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
         
         print("\nComparing variance between phenotypes in combined target and projected:")
-        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('post_transport_by_phenotype.png'),
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('post_transport_by_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # compare projection and source (before and after transport)
@@ -62,7 +62,7 @@ class SplitDatabaseSanityCheck(OptimalTransportTest):
         combined_data = pd.concat([self.source_dataset, self.projected_data])
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, suffix1='source', suffix2='projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('source_vs_projected.png'),
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('source_vs_projected'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # how much each projection had moved - compare target, source, projected
@@ -70,7 +70,7 @@ class SplitDatabaseSanityCheck(OptimalTransportTest):
         combined_data = pd.concat([self.target_dataset, self.source_dataset, self.projected_data])
         combined_data.set_index('sample_id', inplace=True)
         pairs = self._get_pairs(combined_data, suffix1='source', suffix2='projected')
-        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('target_vs_source_vs_projected.png'),
+        variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('target_vs_source_vs_projected'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def _observe_coupling_matrix(self):

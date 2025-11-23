@@ -238,15 +238,23 @@ class Draw:
 
 
 def show_variance(data, group_col_name, file_path, should_run_pcoa=True, should_show_pcoa=True, pcoa_pairs=None):
+    """
+    Shows variance between groups in data, grouped by group_col_name.
+    Writes PERMANOVA results to file_path+'_permanova.txt'.
+    Draws PCoA plot to file_path+'.png' if should_run_pcoa is True. Pairs in pcoa_pairs are connected with lines.
+    """
     otu_data = data[data_utils.get_otu_columns(data)]
     distance_matrix = beta_diversity(metric="braycurtis", counts=otu_data.values, ids=otu_data.index)
     permanova_results = Metrics.get_permanova_results(otu_data, data[group_col_name], distance_matrix=distance_matrix)
-    print(f"PERMANOVA results:\n{permanova_results}\n")
+    with open(file_path+'_permanova.txt', 'w') as f:
+        print(f"PERMANOVA results:\n{permanova_results}\n")
+        f.write(f"PERMANOVA results:\n{permanova_results}\n")
+
     subtitle = f"PERMANOVA pvalue = {permanova_results['p-value']:.3f}, PERMANOVA statistic = {permanova_results['test statistic']:.3f}"
 
     # it's slow... so optional
     if should_run_pcoa:
-        Draw.run_pcoa(otu_data, data[group_col_name], file_path, should_show_pcoa=should_show_pcoa, distance_matrix=distance_matrix, pcoa_pairs=pcoa_pairs, subtitle=subtitle)
+        Draw.run_pcoa(otu_data, data[group_col_name], file_path+'.png', should_show_pcoa=should_show_pcoa, distance_matrix=distance_matrix, pcoa_pairs=pcoa_pairs, subtitle=subtitle)
 
 
 def main():

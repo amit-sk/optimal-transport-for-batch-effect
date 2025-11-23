@@ -12,18 +12,20 @@ import optimal_transport
 import data_utils
 
 class OptimalTransportTest:
-    def __init__(self, source_dataset, target_dataset, should_run_pcoa=False, should_show_pcoa=False, source_dataset_name='source', target_dataset_name='target', results_folder_name=None, **kwargs):
+    def __init__(self, source_dataset, target_dataset, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, source_dataset_name='source', target_dataset_name='target', results_folder_name=None, **kwargs):
         """
         source_dataset: pandas dataframe of data being transported
         target_dataset: pandas dataframe of data being used as reference to be transported onto
         should_run_pcoa: whether to run PCoA plots to visualize data before and after transport
         should_show_pcoa: whether to show PCoA plots (or just write to file). is ignored if should_run_pcoa is False.
+        should_test_signal_retention: whether to test retention of phenotype and age signal before and after transport.
         source_dataset_name: name of the source dataset (appears in the plots)
         target_dataset_name: name of the target dataset (appears in the plots)
         results_folder_name: folder where results will be saved. if None, defaults to 'results/<class name>'
         """
         self.should_run_pcoa = should_run_pcoa
         self.should_show_pcoa = should_show_pcoa
+        self.should_test_signal_retention = should_test_signal_retention
         self.results_folder_name = os.path.join('results', self.__class__.__name__) if results_folder_name is None else results_folder_name
 
         self.source_dataset = source_dataset
@@ -71,14 +73,14 @@ class OptimalTransportTest:
         self.projected_data['sample_id'] = self.source_dataset['sample_id'].str.replace('_'+self.source_dataset_name ,'_projected')
 
     def transport(self, **kwargs_for_ot):
-        self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, verbose=False, log=True, **kwargs_for_ot)
-        self.gw_distance = log['gw_dist']
-        print(f'GW distance: {self.gw_distance}')
-        self._get_projected()
+        with open(self._get_file_path('transport_log.txt'), 'w') as f:
+            self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, verbose=False, log=True, **kwargs_for_ot)
+            self.gw_distance = log['gw_dist']
+            print(f'GW distance: {self.gw_distance}')
+            f.write(f'GW distance: {self.gw_distance}\n')
+            self._get_projected()
 
     def test_signal(self):
-        # TODO: save all to some file in results folder
-
         # combine source, target, projected to unify columns (OTUs)
         combined = pd.concat([self.source_dataset, self.target_dataset, self.projected_data])
         combined.fillna(0.0, inplace=True)  # fill missing OTUs with relative abundance of 0
@@ -173,8 +175,9 @@ class OptimalTransportTest:
         self.transport()
         print("Showing variance post-transport...")
         self.show_variance_post_transport()
-        print("Testing signal...")
-        self.test_signal()
+        if self.should_test_signal_retention:
+            print("Testing signal...")
+            self.test_signal()
         print("\nTest complete.")
 
     @staticmethod
