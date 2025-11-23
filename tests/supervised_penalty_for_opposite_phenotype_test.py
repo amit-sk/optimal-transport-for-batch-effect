@@ -200,13 +200,13 @@ class SupervisedPenaltyForOppositePhenotypeTests(UnsupervisedTransportTest):
         # TODO: receive alpha values as an arg
         for alpha in [1e-9, 1e-7, 1e-5, 1e-3, 1e-1, 1, 10, 100]:
             print(f"\n\nRunning test with {alpha=}...\n")
+            os.makedirs(self._get_file_path(f'alpha_{alpha}'), exist_ok=True)  # each iteration in its own folder
             test = SupervisedPenaltyForOppositePhenotypeTest(alpha=alpha, should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
+            test.results_folder_name = os.path.join(self.results_folder_name, f'alpha_{alpha}')
             print("Running transport...")
             test.transport()
 
             print("Showing variance post-transport...")
-            os.makedirs(self._get_file_path(f'alpha_{alpha}'), exist_ok=True)  # each iteration in its own folder
-            test.results_folder_name = os.path.join(self.results_folder_name, f'alpha_{alpha}')
             test.show_variance_post_transport()
             if self.should_test_signal_retention:
                 print("Testing signal...")

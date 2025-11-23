@@ -63,12 +63,14 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
             self.control_test = SupervisedWeightingTestForPhenotype(
                 source_dataset=original_mucosalibd_data.copy(), target_dataset=original_risk_data.copy(),
                 current_phenotype='control', weight_for_current_phenotype=weight_for_current_phenotype,
-                should_run_pcoa=self.should_run_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk'
+                should_run_pcoa=self.should_run_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk',
+                results_folder_name=os.path.join(self.results_folder_name, 'control')
             )
             self.cd_test = SupervisedWeightingTestForPhenotype(
                 source_dataset=original_mucosalibd_data.copy(), target_dataset=original_risk_data.copy(),
                 current_phenotype='CD', weight_for_current_phenotype=weight_for_current_phenotype,
-                should_run_pcoa=self.should_run_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk'
+                should_run_pcoa=self.should_run_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk',
+                results_folder_name=os.path.join(self.results_folder_name, 'CD')
             )
 
         def transport(self):
@@ -84,6 +86,8 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         def run_test(self):
             # create folder for results
             os.makedirs(self.results_folder_name, exist_ok=True)
+            os.makedirs(self.control_test.results_folder_name, exist_ok=True)
+            os.makedirs(self.cd_test.results_folder_name, exist_ok=True)
 
             print("Running transport...")
             self.transport()
