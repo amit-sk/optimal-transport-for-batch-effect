@@ -18,7 +18,7 @@ class OptimalTransportTest:
         target_dataset: pandas dataframe of data being used as reference to be transported onto
         should_run_pcoa: whether to run PCoA plots to visualize data before and after transport
         should_show_pcoa: whether to show PCoA plots (or just write to file). is ignored if should_run_pcoa is False.
-        should_test_signal_retention: whether to test retention of phenotype and age signal before and after transport.
+        should_test_signal_retention: whether to test retention of phenotype, age and dataset signals before and after transport.
         source_dataset_name: name of the source dataset (appears in the plots)
         target_dataset_name: name of the target dataset (appears in the plots)
         results_folder_name: folder where results will be saved. if None, defaults to 'results/<class name>'
@@ -58,10 +58,73 @@ class OptimalTransportTest:
         return os.path.join(self.results_folder_name, file_name)
         
     def show_variance_pre_transport(self):
+        """
+        method for subclasses to implement showing variance between datasets \ phenotypes pre-transport.
+        """
         raise NotImplementedError()
 
     def show_variance_post_transport(self):
+        """
+        method for subclasses to implement showing variance between datasets \ phenotypes post-transport.
+        """
         raise NotImplementedError()
+
+    def test_dataset_differentiation(self):
+        """
+        test ability to differentiate the different datasets before and after transport using a classifier.
+        """
+        combined_pre_transport = pd.concat([self.source_dataset, self.target_dataset])
+        combined_pre_transport.fillna(0.0, inplace=True)  # fill missing OTUs with relative abundance of 0
+        combined_pre_transport.set_index('sample_id', inplace=True)
+        combined_pre_transport = combined_pre_transport.sample(frac=1.0, random_state=data_utils.PROJECT_SEED)  # shuffle data
+
+        combined_post_transport = pd.concat([self.target_dataset, self.projected_data])
+        combined_post_transport.fillna(0.0, inplace=True)  # fill missing OTUs with relative abundance of 0
+        combined_post_transport.set_index('sample_id', inplace=True)
+        combined_post_transport = combined_post_transport.sample(frac=1.0, random_state=data_utils.PROJECT_SEED)  # shuffle data
+
+        with open(self._get_file_path('dataset_differentiation_test.txt'), 'w') as f:
+            classifier_iterations = 20
+
+            print(f'\nTesting dataset differentiation using Random Forest Classifier (averaging {classifier_iterations} iterations)')
+            f.write(f'Testing dataset differentiation using Random Forest Classifier (averaging {classifier_iterations} iterations)\n')
+
+            # show results on source \ target data before transport
+            print('\nBefore transport')
+            f.write('\nBefore transport:\n')
+            combined_otu_data = combined_pre_transport[data_utils.get_otu_columns(combined_pre_transport)]
+            pre_transport_acc, pre_transport_auc_roc = self._run_dataset_classifier(combined_otu_data, combined_pre_transport['dataset'], iterations=classifier_iterations)
+            print(f"Classification by dataset before transport results - Accuracy: {np.mean(pre_transport_acc):.3f}, AUC-ROC: {np.mean(pre_transport_auc_roc):.3f}")
+            f.write(f"Classification by dataset before transport results - Accuracy: {np.mean(pre_transport_acc):.3f}, AUC-ROC: {np.mean(pre_transport_auc_roc):.3f}\n")
+            
+            # show results on projection \ target data after transport
+            print('\nAfter transport:')
+            f.write('\nAfter transport:\n')
+            combined_otu_data = combined_post_transport[data_utils.get_otu_columns(combined_post_transport)]
+            post_transport_acc, post_transport_auc_roc = self._run_dataset_classifier(combined_otu_data, combined_post_transport['dataset'], iterations=classifier_iterations)
+            print(f"Classification by dataset after transport results - Accuracy: {np.mean(post_transport_acc):.3f}, AUC-ROC: {np.mean(post_transport_auc_roc):.3f}")
+            f.write(f"Classification by dataset after transport results - Accuracy: {np.mean(post_transport_acc):.3f}, AUC-ROC: {np.mean(post_transport_auc_roc):.3f}\n")
+
+    def _run_dataset_classifier(self, data, dataset_labels, iterations=30):
+        classifier = RandomForestClassifier(random_state=data_utils.PROJECT_SEED)
+        acc_list = []
+        auc_roc_list = []
+        for i in range(iterations):
+            train_data, test_data, train_dataset_labels, test_dataset_labels = model_selection.train_test_split(
+                data, dataset_labels, test_size=0.3, random_state=data_utils.PROJECT_SEED + i
+            )
+            classifier.fit(train_data, train_dataset_labels)
+
+            true_label = dataset_labels.iloc[0]  # get one of the dataset labels, the other will be "false" i.e. 0.
+            pred = classifier.predict(test_data)
+            acc = (pred == test_dataset_labels).mean()
+            probability_scores = classifier.predict_proba(test_data)[:, classifier.classes_ == true_label]
+            auc_roc = metrics.roc_auc_score((test_dataset_labels == true_label).astype(int), probability_scores)
+
+            acc_list.append(acc)
+            auc_roc_list.append(auc_roc)
+
+        return acc_list, auc_roc_list
 
     def _get_projected(self):
         self.projected_otu_data = optimal_transport.barycentric_projection(self.coupling, self.target_otu_data, x_onto_y=False)
@@ -73,6 +136,9 @@ class OptimalTransportTest:
         self.projected_data['sample_id'] = self.source_dataset['sample_id'].str.replace('_'+self.source_dataset_name ,'_projected')
 
     def transport(self, **kwargs_for_ot):
+        """
+        runs GW optimal transport from source to target dataset.
+        """
         with open(self._get_file_path('transport_log.txt'), 'w') as f:
             self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, verbose=False, log=True, **kwargs_for_ot)
             self.gw_distance = log['gw_dist']
@@ -81,6 +147,10 @@ class OptimalTransportTest:
             self._get_projected()
 
     def test_signal(self):
+        """
+        test retention of phenotype and age signals before and after transport.
+        testing phenotype by classification and age by regression.
+        """
         # combine source, target, projected to unify columns (OTUs)
         combined = pd.concat([self.source_dataset, self.target_dataset, self.projected_data])
         combined.fillna(0.0, inplace=True)  # fill missing OTUs with relative abundance of 0
@@ -176,6 +246,8 @@ class OptimalTransportTest:
         print("Showing variance post-transport...")
         self.show_variance_post_transport()
         if self.should_test_signal_retention:
+            print("Testing dataset differentiation...")
+            self.test_dataset_differentiation()
             print("Testing signal...")
             self.test_signal()
         print("\nTest complete.")

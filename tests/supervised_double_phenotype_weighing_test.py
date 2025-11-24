@@ -63,13 +63,13 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
             self.control_test = SupervisedWeightingTestForPhenotype(
                 source_dataset=original_mucosalibd_data.copy(), target_dataset=original_risk_data.copy(),
                 current_phenotype='control', weight_for_current_phenotype=weight_for_current_phenotype,
-                should_run_pcoa=self.should_run_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk',
+                source_dataset_name='mucosalibd', target_dataset_name='risk',
                 results_folder_name=os.path.join(self.results_folder_name, 'control')
             )
             self.cd_test = SupervisedWeightingTestForPhenotype(
                 source_dataset=original_mucosalibd_data.copy(), target_dataset=original_risk_data.copy(),
                 current_phenotype='CD', weight_for_current_phenotype=weight_for_current_phenotype,
-                should_run_pcoa=self.should_run_pcoa, source_dataset_name='mucosalibd', target_dataset_name='risk',
+                source_dataset_name='mucosalibd', target_dataset_name='risk',
                 results_folder_name=os.path.join(self.results_folder_name, 'CD')
             )
 
@@ -94,6 +94,8 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
             print("Showing variance post-transport...")
             self.show_variance_post_transport()
             if self.should_test_signal_retention:
+                print("Testing dataset differentiation...")
+                self.test_dataset_differentiation()
                 print("Testing signal...")
                 self.test_signal()
             print("Test complete.")
@@ -137,7 +139,8 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
             SupervisedDoublePhenotypeWeightingTests.TestsRunner(
                 weight_for_current_phenotype=weight_for_current_phenotype,
                 should_run_pcoa=self.should_run_pcoa,
-                should_show_pcoa=self.should_show_pcoa
+                should_show_pcoa=self.should_show_pcoa,
+                should_test_signal_retention=self.should_test_signal_retention
             ).run_test()
 
         print("Test complete.")

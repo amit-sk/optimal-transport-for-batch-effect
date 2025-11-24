@@ -209,6 +209,8 @@ class SupervisedPenaltyForOppositePhenotypeTests(UnsupervisedTransportTest):
             print("Showing variance post-transport...")
             test.show_variance_post_transport()
             if self.should_test_signal_retention:
+                print("Testing dataset differentiation...")
+                test.test_dataset_differentiation()
                 print("Testing signal...")
                 test.test_signal()
 
