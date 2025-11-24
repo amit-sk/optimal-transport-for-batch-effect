@@ -79,7 +79,6 @@ class OptimalTransportTest:
         combined_pre_transport = combined_pre_transport.sample(frac=1.0, random_state=data_utils.PROJECT_SEED)  # shuffle data
 
         combined_post_transport = pd.concat([self.target_dataset, self.projected_data])
-        combined_post_transport.fillna(0.0, inplace=True)  # fill missing OTUs with relative abundance of 0
         combined_post_transport.set_index('sample_id', inplace=True)
         combined_post_transport = combined_post_transport.sample(frac=1.0, random_state=data_utils.PROJECT_SEED)  # shuffle data
 

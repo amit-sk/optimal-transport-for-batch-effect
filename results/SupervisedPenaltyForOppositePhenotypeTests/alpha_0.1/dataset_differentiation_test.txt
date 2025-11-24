@@ -1,0 +1,7 @@
+Testing dataset differentiation using Random Forest Classifier (averaging 20 iterations)
+
+Before transport:
+Classification by dataset before transport results - Accuracy: 0.999, AUC-ROC: 1.000
+
+After transport:
+Classification by dataset after transport results - Accuracy: 0.960, AUC-ROC: 0.981
