@@ -21,16 +21,16 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         combined_data.set_index('sample_id', inplace=True)
 
         # show variance before alignment
-        print("\nComparing variance between risk and mucosalibd (before alignment):")
+        print(f"\nComparing variance between {self.target_dataset_name} and {self.source_dataset_name} (before alignment):")
         variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-        print("\nComparing variance between phenotypes in combined risk and mucosalibd:")
+        print(f"\nComparing variance between phenotypes in combined {self.target_dataset_name} and {self.source_dataset_name}:")
         variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def show_variance_post_transport(self):
-        risk_data = self.target_dataset.copy()
-        mucosalibd_data = self.source_dataset.copy()
+        target_data = self.target_dataset.copy()
+        source_data = self.source_dataset.copy()
         projected = self.projected_data.copy()
 
         # titration plot to measure batch effect
@@ -42,40 +42,39 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         #     self._observe_coupling_matrix()
 
         # compare projection and risk (post transport)
-        combined_data = pd.concat([risk_data, projected])
-        # combined_data = pd.concat([risk_data[risk_data.phenotype == 'control'], projected[risk_data.phenotype == 'control']])  # compare only controls (healthy)
+        combined_data = pd.concat([target_data, projected])
         combined_data.set_index('sample_id', inplace=True)
 
-        print("\nComparing variance between risk and projected:")
+        print(f"\nComparing variance between {self.target_dataset_name} and projected:")
         variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('post_transport_by_database'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-        print("\nComparing variance between phenotypes in combined risk and projected:")
+        print(f"\nComparing variance between phenotypes in combined {self.target_dataset_name} and projected:")
         variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('post_transport_by_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
-        print("\nComparing variance between dataset+phenotype in combined risk and projected:")
-        risk_data['dataset+phenotype'] = 'RISK_' + risk_data['phenotype']
-        projected['dataset+phenotype'] = 'Projected_' + projected['phenotype']
-        combined_data = pd.concat([risk_data, projected])
+        print(f"\nComparing variance between dataset+phenotype in combined {self.target_dataset_name} and projected:")
+        target_data['dataset+phenotype'] = f'{self.target_dataset_name}_' + target_data['phenotype']
+        projected['dataset+phenotype'] = 'projected_' + projected['phenotype']
+        combined_data = pd.concat([target_data, projected])
         combined_data.set_index('sample_id', inplace=True)
         variance_tests.show_variance(combined_data, 'dataset+phenotype', file_path=self._get_file_path('post_transport_by_dataset_and_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # compare projection and mucosalibd (before and after transport)
-        print("\nComparing variance between mucosalibd (original) and projected:")
-        combined_data = pd.concat([mucosalibd_data, projected])
+        print(f"\nComparing variance between {self.source_dataset_name} (original) and projected:")
+        combined_data = pd.concat([source_data, projected])
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
-        pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
+        pairs = self._get_pairs(combined_data, f'_{self.source_dataset_name}', '_projected')
         variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('source_vs_projected'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
         # how much each projection had moved - compare risk, mucosalibd, projected
-        print("\nComparing variance between risk, mucosalibd and projected:")
-        combined_data = pd.concat([risk_data, mucosalibd_data, projected])
+        print(f"\nComparing variance between risk, {self.source_dataset_name} and projected:")
+        combined_data = pd.concat([target_data, source_data, projected])
         combined_data.fillna(0.0, inplace=True)
         combined_data.set_index('sample_id', inplace=True)
-        pairs = self._get_pairs(combined_data, '_mucosalibd', '_projected')
+        pairs = self._get_pairs(combined_data, f'_{self.source_dataset_name}', '_projected')
         variance_tests.show_variance(combined_data, 'dataset', pcoa_pairs=pairs, file_path=self._get_file_path('target_vs_source_vs_projected'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
@@ -107,11 +106,11 @@ class UnsupervisedTransportTest(OptimalTransportTest):
         coupling = pd.DataFrame(self.coupling)
         spread_of_src = coupling.nunique(axis=0)
         plt.hist(spread_of_src, bins=12)
-        plt.title("Spread of each sample in src dataset (mucosalibd) in coupling matrix")
+        plt.title(f"Spread of each sample in src dataset ({self.source_dataset_name}) in coupling matrix")
         plt.show()
 
         spread_of_src = coupling.nunique(axis=1)
         plt.hist(spread_of_src, bins=12)
-        plt.title("Spread of each sample in target dataset (risk) in coupling matrix")
+        plt.title(f"Spread of each sample in target dataset ({self.target_dataset_name}) in coupling matrix")
         plt.show()
 
