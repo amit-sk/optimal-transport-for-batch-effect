@@ -7,6 +7,7 @@ from scipy import stats
 from sklearn import metrics
 from sklearn import model_selection
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.neighbors import KNeighborsClassifier
 
 import optimal_transport
 import data_utils
@@ -59,13 +60,13 @@ class OptimalTransportTest:
         
     def show_variance_pre_transport(self):
         """
-        method for subclasses to implement showing variance between datasets \ phenotypes pre-transport.
+        method for subclasses to implement showing variance between datasets and phenotypes pre-transport.
         """
         raise NotImplementedError()
 
     def show_variance_post_transport(self):
         """
-        method for subclasses to implement showing variance between datasets \ phenotypes post-transport.
+        method for subclasses to implement showing variance between datasets and phenotypes post-transport.
         """
         raise NotImplementedError()
 
@@ -105,7 +106,7 @@ class OptimalTransportTest:
             f.write(f"Classification by dataset after transport results - Accuracy: {np.mean(post_transport_acc):.3f}, AUC-ROC: {np.mean(post_transport_auc_roc):.3f}\n")
 
     def _run_dataset_classifier(self, data, dataset_labels, iterations=30):
-        classifier = RandomForestClassifier(random_state=data_utils.PROJECT_SEED)
+        classifier = KNeighborsClassifier()
         acc_list = []
         auc_roc_list = []
         for i in range(iterations):
