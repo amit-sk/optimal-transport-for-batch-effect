@@ -1,9 +1,10 @@
-from tests.unsupervised_transport_test import UnsupervisedTransportTest
+from tests.ihmp_franzosa_unsupervised_transport_test import iHMP_FRANZOSA_UnsupervisedTransportTest
 
-class SupervisedPhenotypeWeightingTest(UnsupervisedTransportTest):
+class iHMP_FRANZOSA_SupervisedPhenotypeWeightingTest(iHMP_FRANZOSA_UnsupervisedTransportTest):
     """
-    Transporting mucosalIBD data onto RISK data with supervised phenotype weighting.
-    Weighting the target distribution by source phenotype proportion.
+    COPIED FROM supervised_phenotype_weighting_test.py
+    changed to inherit from iHMP_FRANZOSA_UnsupervisedTransportTest.
+    the rest is copied. give me a break lol.
     """
     def transport(self):
         p = self._get_dataset_phenotype_weights()

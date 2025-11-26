@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import ot
 
 import variance_tests
 from tests.optimal_transport_test_with_entropy import OptimalTransportEntropyTest
