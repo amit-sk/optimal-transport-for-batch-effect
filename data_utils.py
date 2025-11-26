@@ -9,6 +9,12 @@ def get_otu_columns(data):
     return [c for c in data.columns if (type(c) is int) or (type(c) is str and c.isnumeric())]
 
 
+def get_species_columns(data):
+    """
+    for datasets where species are represented with full taxonomy strings starting with 'd__Bacteria' (to be converted to otu-like integers).
+    """
+    return [c for c in data.columns if c.startswith('d__Bacteria')]
+
 def round_dataframes(digits, *dataframes):
     return tuple(df.map(lambda x: round(x, digits) if type(x) == float else x) for df in dataframes)
 
