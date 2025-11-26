@@ -47,29 +47,31 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
     class TestsRunner(UnsupervisedTransportTest):
         """
         internal class which runs the two transports per phenotype for a given weight.
+        needs the original datasets to create the two tests.
+        uses given results folder name and appends weight and phenotype to create subfolders for each test.
         """
-        def __init__(self, *, weight_for_current_phenotype, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
+        def __init__(self, *, original_source_dataset, original_target_dataset, source_dataset_name, target_dataset_name, weight_for_current_phenotype,
+                     results_folder_name, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
             weight_str = f'weight_{int(weight_for_current_phenotype*100)}'
-            super().__init__(should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, should_test_signal_retention=should_test_signal_retention,
-                            results_folder_name=os.path.join('results', SupervisedDoublePhenotypeWeightingTests.__name__, weight_str), **kwargs)
 
-            self.weight_for_current_phenotype = weight_for_current_phenotype
-            self.weight_str = weight_str
-
-            # need the original datasets for each test
-            original_risk_data = pd.read_csv("risk_data.csv")
-            original_mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
+            # each test needs its own copy of the original datasets.
+            OptimalTransportTest.__init__(
+                self, should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, should_test_signal_retention=should_test_signal_retention,
+                source_dataset=original_source_dataset.copy(), target_dataset=original_target_dataset.copy(),
+                source_dataset_name=source_dataset_name, target_dataset_name=target_dataset_name,
+                results_folder_name=os.path.join(results_folder_name, weight_str), **kwargs
+            )
 
             self.control_test = SupervisedWeightingTestForPhenotype(
-                source_dataset=original_mucosalibd_data.copy(), target_dataset=original_risk_data.copy(),
+                source_dataset=original_source_dataset.copy(), target_dataset=original_target_dataset.copy(),
                 current_phenotype='control', weight_for_current_phenotype=weight_for_current_phenotype,
-                source_dataset_name='mucosalibd', target_dataset_name='risk',
+                source_dataset_name=source_dataset_name, target_dataset_name=target_dataset_name,
                 results_folder_name=os.path.join(self.results_folder_name, 'control')
             )
             self.cd_test = SupervisedWeightingTestForPhenotype(
-                source_dataset=original_mucosalibd_data.copy(), target_dataset=original_risk_data.copy(),
+                source_dataset=original_source_dataset.copy(), target_dataset=original_target_dataset.copy(),
                 current_phenotype='CD', weight_for_current_phenotype=weight_for_current_phenotype,
-                source_dataset_name='mucosalibd', target_dataset_name='risk',
+                source_dataset_name=source_dataset_name, target_dataset_name=target_dataset_name,
                 results_folder_name=os.path.join(self.results_folder_name, 'CD')
             )
 
@@ -106,6 +108,10 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         risk_data = pd.read_csv("risk_data.csv")
         mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
 
+        # need original datasets for each test
+        self.original_target_dataset = risk_data.copy()
+        self.original_source_dataset = mucosalibd_data.copy()
+
         super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa,
                          should_test_signal_retention=should_test_signal_retention, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
 
@@ -116,10 +122,10 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         combined_data.set_index('sample_id', inplace=True)
 
         # show variance before alignment
-        print("\nComparing variance between risk and mucosalibd (before alignment):")
+        print(f"\nComparing variance between {self.target_dataset_name} and {self.source_dataset_name} (before alignment):")
         variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-        print("\nComparing variance between phenotypes in combined risk and mucosalibd:")
+        print(f"\nComparing variance between phenotypes in combined {self.target_dataset_name} and {self.source_dataset_name}:")
         variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype'),
                                      should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
@@ -137,7 +143,12 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
         for weight_for_current_phenotype in [0.6, 0.7, 0.8, 0.9]:  # TODO: obtain current weight from init args
             print(f"\n\nRunning test with weights {int(weight_for_current_phenotype*100)}-{int((1-weight_for_current_phenotype)*100)}...\n")
             SupervisedDoublePhenotypeWeightingTests.TestsRunner(
+                original_source_dataset=self.original_source_dataset.copy(),
+                original_target_dataset=self.original_target_dataset.copy(),
+                source_dataset_name=self.source_dataset_name,
+                target_dataset_name=self.target_dataset_name,
                 weight_for_current_phenotype=weight_for_current_phenotype,
+                results_folder_name=self.results_folder_name,
                 should_run_pcoa=self.should_run_pcoa,
                 should_show_pcoa=self.should_show_pcoa,
                 should_test_signal_retention=self.should_test_signal_retention
