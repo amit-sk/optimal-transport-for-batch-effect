@@ -1,3 +1,4 @@
+import os
 import random
 import pandas as pd
 import numpy as np
@@ -263,15 +264,17 @@ def show_variance(data, group_col_name, file_path=None, should_run_pcoa=True, sh
 
 
 def main():
+    os.makedirs(os.path.join('results', 'datasets'), exist_ok=True)
+
     # risk data
     print("RISK data:")
     risk_data = pd.read_csv("risk_data.csv")
-    show_variance(risk_data, 'phenotype', should_run_pcoa=False)
+    show_variance(risk_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'risk_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
 
     # mucosalibd data
     print("MucosalIBD data:")
     mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
-    show_variance(mucosalibd_data, 'phenotype', should_run_pcoa=False)
+    show_variance(mucosalibd_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'mucosalibd_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
 
     # combined
     print("PERMANOVA between datasets:")
@@ -284,11 +287,30 @@ def main():
     # # test only controls
     # combined_data = combined_data[combined_data['phenotype'] == 'control']
 
-    show_variance(combined_data, 'dataset+phenotype')
+    show_variance(combined_data, 'dataset+phenotype', file_path=os.path.join('results', 'datasets', 'combined_risk_mucosalibd_by_dataset_and_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
 
     # # test dataset and phenotype separately
     # show_variance(combined_data, 'dataset')
     # show_variance(combined_data, 'phenotype')
+    
+    # iHMP data
+    print("iHMP data:")
+    ihmp_data = pd.read_csv("ihmp_data.csv")
+    show_variance(ihmp_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'ihmp_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
+
+    # FRANZOSA data
+    print("FRANZOSA data:")
+    franzosa_data = pd.read_csv("franzosa_data.csv")
+    show_variance(franzosa_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'franzosa_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
+
+    # combined iHMP and FRANZOSA
+    print("PERMANOVA between iHMP and FRANZOSA datasets:")
+    ihmp_data['dataset+phenotype'] = 'iHMP_' + ihmp_data['phenotype']
+    franzosa_data['dataset+phenotype'] = 'FRANZOSA_' + franzosa_data['phenotype']
+    combined_data = pd.concat([ihmp_data, franzosa_data])
+    combined_data.fillna(0.0, inplace=True)
+    combined_data.set_index('sample_id', inplace=True)
+    show_variance(combined_data, 'dataset+phenotype', file_path=os.path.join('results', 'datasets', 'combined_ihmp_franzosa_by_dataset_and_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
     
     print("Done.")
 
