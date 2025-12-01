@@ -194,7 +194,7 @@ class SupervisedPenaltyForOppositePhenotypeTests(OptimalTransportTest):
     """
     Runs multiple SupervisedPenaltyForOppositePhenotypeTest with different alpha values.
     """
-    def __init__(self, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
+    def __init__(self, alpha_values=None, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
         # read here so the csv are only read once
         risk_data = pd.read_csv("risk_data.csv")
         mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
@@ -202,6 +202,8 @@ class SupervisedPenaltyForOppositePhenotypeTests(OptimalTransportTest):
         # need original datasets for each test
         self.original_target_dataset = risk_data.copy()
         self.original_source_dataset = mucosalibd_data.copy()
+
+        self.alpha_values = alpha_values.copy() if alpha_values is not None else [1e-9, 1e-7, 1e-5, 1e-3, 1e-1, 1, 10, 100]
 
         super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa,
                          should_test_signal_retention=should_test_signal_retention, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
@@ -215,8 +217,7 @@ class SupervisedPenaltyForOppositePhenotypeTests(OptimalTransportTest):
         print("Showing variance pre-transport...")
         self.show_variance_pre_transport()
 
-        # TODO: receive alpha values as an arg
-        for alpha in [1e-9, 1e-7, 1e-5, 1e-3, 1e-1, 1, 10, 100]:
+        for alpha in self.alpha_values:
             print(f"\n\nRunning test with {alpha=}...\n")
             os.makedirs(self._get_file_path(f'alpha_{alpha}'), exist_ok=True)  # each iteration in its own folder
 
