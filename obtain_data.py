@@ -143,6 +143,10 @@ def main():
 
     # ===================================================
 
+    # Note: iHMP is longitudinal, so we only take one sample per subject (the first).
+    #  we tested also using fecalcal, taking the highest values for CD and lowest for controls,
+    #  but this was actually worse in terms of classification by phenotype.
+
     ihmp_data = pd.read_csv(PATH_TO_iHMP_DATA, sep='\t')
     ihmp_meta = pd.read_csv(PATH_TO_iHMP_METADATA, sep='\t')
     franzosa_data = pd.read_csv(PATH_TO_FRANZOSA_DATA, sep='\t')

@@ -29,12 +29,3 @@ def barycentric_projection(coupling, target_dataset, x_onto_y=True):
         src_aligned = (coupling.T @ target_dataset) / weights.values[:, None]
 
     return src_aligned
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()
-
