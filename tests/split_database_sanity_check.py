@@ -24,18 +24,6 @@ class SplitDatabaseSanityCheck(OptimalTransportTest):
 
         super().__init__(risk_data_1, risk_data_2, should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, should_test_signal_retention=should_test_signal_retention, **kwargs)
 
-    def show_variance_pre_transport(self):
-        # create combined data
-        combined_data = pd.concat([self.target_dataset, self.source_dataset])
-        combined_data.set_index('sample_id', inplace=True)
-
-        # show variance before alignment
-        print("\nComparing variance between target and source (before alignment):")
-        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database'),
-                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype'),
-                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-
     def show_variance_post_transport(self):
         # titration plot to measure batch effect
         if self.should_run_pcoa:

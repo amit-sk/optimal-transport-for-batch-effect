@@ -1,18 +1,24 @@
-import ot
 import os
+import pandas as pd
 from ot.gromov import *
 from ot.gromov._gw import *
 
 from tests.unsupervised_transport_test import UnsupervisedTransportTest
+from tests.optimal_transport_test import OptimalTransportTest
 
 class SupervisedPenaltyForOppositePhenotypeTest(UnsupervisedTransportTest):
     """
     Adds a penalty matrix to the Gromov-Wasserstein transport problem that penalizes transport between samples with opposite phenotypes.
     Alpha parameter controls the weight of the penalty (alpha=1 means penalty of 1).
+    class SupervisedPenaltyForOppositePhenotypeTests below runs multiple tests with different alpha values. This is not meant to be run directly.
     """
-    def __init__(self, *, alpha=1, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
-        super().__init__(should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa,
-                         should_test_signal_retention=should_test_signal_retention, **kwargs)
+    def __init__(self, *, source_dataset, target_dataset, alpha, results_folder_name, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, source_dataset_name='source', target_dataset_name='target', **kwargs):
+        OptimalTransportTest.__init__(
+            self, source_dataset=source_dataset, target_dataset=target_dataset,
+            should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa, should_test_signal_retention=should_test_signal_retention,
+            source_dataset_name=source_dataset_name, target_dataset_name=target_dataset_name,
+            results_folder_name=os.path.join(results_folder_name, f'alpha_{alpha}'), **kwargs
+        )
         self.alpha = alpha
 
     def transport(self):
@@ -184,10 +190,22 @@ def gromov_wasserstein_copy(
         )
 
 
-class SupervisedPenaltyForOppositePhenotypeTests(UnsupervisedTransportTest):
+class SupervisedPenaltyForOppositePhenotypeTests(OptimalTransportTest):
     """
     Runs multiple SupervisedPenaltyForOppositePhenotypeTest with different alpha values.
     """
+    def __init__(self, should_run_pcoa=False, should_show_pcoa=False, should_test_signal_retention=False, **kwargs):
+        # read here so the csv are only read once
+        risk_data = pd.read_csv("risk_data.csv")
+        mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
+
+        # need original datasets for each test
+        self.original_target_dataset = risk_data.copy()
+        self.original_source_dataset = mucosalibd_data.copy()
+
+        super().__init__(source_dataset=mucosalibd_data, target_dataset=risk_data, should_run_pcoa=should_run_pcoa, should_show_pcoa=should_show_pcoa,
+                         should_test_signal_retention=should_test_signal_retention, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
+
     def run_test(self):
         print(f"\nRunning test {self.__class__.__name__}...")
 
@@ -201,8 +219,15 @@ class SupervisedPenaltyForOppositePhenotypeTests(UnsupervisedTransportTest):
         for alpha in [1e-9, 1e-7, 1e-5, 1e-3, 1e-1, 1, 10, 100]:
             print(f"\n\nRunning test with {alpha=}...\n")
             os.makedirs(self._get_file_path(f'alpha_{alpha}'), exist_ok=True)  # each iteration in its own folder
-            test = SupervisedPenaltyForOppositePhenotypeTest(alpha=alpha, should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-            test.results_folder_name = os.path.join(self.results_folder_name, f'alpha_{alpha}')
+
+            test = SupervisedPenaltyForOppositePhenotypeTest(
+                alpha=alpha,
+                source_dataset=self.original_source_dataset.copy(),
+                target_dataset=self.original_target_dataset.copy(),
+                source_dataset_name=self.source_dataset_name,
+                target_dataset_name=self.target_dataset_name,
+                results_folder_name=self.results_folder_name,
+                should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
             print("Running transport...")
             test.transport()
 

@@ -10,6 +10,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.neighbors import KNeighborsClassifier
 
 import optimal_transport
+import variance_tests
 import data_utils
 
 class OptimalTransportTest:
@@ -60,9 +61,20 @@ class OptimalTransportTest:
         
     def show_variance_pre_transport(self):
         """
-        method for subclasses to implement showing variance between datasets and phenotypes pre-transport.
+        method for showing variance between datasets and phenotypes pre-transport.
         """
-        raise NotImplementedError()
+        # create combined data (to show variance before alignment)
+        combined_data = pd.concat([self.target_dataset, self.source_dataset])
+        combined_data.fillna(0.0, inplace=True)
+        combined_data.set_index('sample_id', inplace=True)
+
+        # show variance before alignment
+        print(f"\nComparing variance between {self.target_dataset_name} and {self.source_dataset_name} (before alignment):")
+        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
+        print(f"\nComparing variance between phenotypes in combined {self.target_dataset_name} and {self.source_dataset_name}:")
+        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype'),
+                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
 
     def show_variance_post_transport(self):
         """

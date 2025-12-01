@@ -116,19 +116,7 @@ class SupervisedDoublePhenotypeWeightingTests(OptimalTransportTest):
                          should_test_signal_retention=should_test_signal_retention, source_dataset_name='mucosalibd', target_dataset_name='risk', **kwargs)
 
     def show_variance_pre_transport(self):
-        # create combined data (to show variance before alignment)
-        combined_data = pd.concat([self.target_dataset, self.source_dataset])
-        combined_data.fillna(0.0, inplace=True)
-        combined_data.set_index('sample_id', inplace=True)
-
-        # show variance before alignment
-        print(f"\nComparing variance between {self.target_dataset_name} and {self.source_dataset_name} (before alignment):")
-        variance_tests.show_variance(combined_data, 'dataset', file_path=self._get_file_path('pre_transport_by_database'),
-                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-        print(f"\nComparing variance between phenotypes in combined {self.target_dataset_name} and {self.source_dataset_name}:")
-        variance_tests.show_variance(combined_data, 'phenotype', file_path=self._get_file_path('pre_transport_by_phenotype'),
-                                     should_run_pcoa=self.should_run_pcoa, should_show_pcoa=self.should_show_pcoa)
-
+        super().show_variance_pre_transport()
         # TODO: show var between each phenotype separately in combined dataset?
 
     def run_test(self):
