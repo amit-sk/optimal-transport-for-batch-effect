@@ -237,12 +237,13 @@ class Draw:
         fig.write_image(png_name, height=600, width=800, scale=6, format='png')
 
 
-def show_variance(data, group_col_name, file_path, should_run_pcoa=True, should_show_pcoa=True, pcoa_pairs=None):
+def show_variance(data, group_col_name, file_path, should_run_pcoa=True, should_show_pcoa=True, pcoa_pairs=None, seed=data_utils.PROJECT_SEED):
     """
     Shows variance between groups in data, grouped by group_col_name.
     Writes PERMANOVA results to file_path+'_permanova.txt'.
     Draws PCoA plot to file_path+'.png' if should_run_pcoa is True. Pairs in pcoa_pairs are connected with lines.
     """
+    np.random.seed(seed)
     otu_data = data[data_utils.get_otu_columns(data)]
     distance_matrix = beta_diversity(metric="braycurtis", counts=otu_data.values, ids=otu_data.index)
     permanova_results = Metrics.get_permanova_results(otu_data, data[group_col_name], distance_matrix=distance_matrix)
