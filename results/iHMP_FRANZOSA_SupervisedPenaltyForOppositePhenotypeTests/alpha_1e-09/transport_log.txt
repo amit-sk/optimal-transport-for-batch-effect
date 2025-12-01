@@ -1,0 +1,2 @@
+self.alpha=1e-09 as penalty weight for opposite phenotypes
+GW distance: 0.020814799614721092
