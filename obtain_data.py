@@ -55,34 +55,8 @@ def obtain_data(data, metadata, age_label):
         sample_meta = metadata[metadata.Sample == sample_id]
         subject_id = sample_meta.Subject.iloc[0]
 
-        # handling longitudinal samples - keep only one sample per subject (the one with highest fecalcal if available)
         if 'subject_id' in processed_data and (processed_data['subject_id'] == subject_id).sum() > 0:
-            # already processed a sample for this subject - keep only the one with higher fecalcal
-            existing_entry = processed_data[processed_data['subject_id'] == subject_id]
-            existing_fecalcal = existing_entry['fecalcal'].iloc[0]
-            new_fecalcal = sample_meta['fecalcal'].iloc[0]
-            if not pd.isna(existing_fecalcal) and not pd.isna(new_fecalcal):
-                if existing_entry['phenotype'].iloc[0] == 'CD':
-                    should_change = (existing_fecalcal < new_fecalcal)  # for CD, keep higher fecalcal
-                else:
-                    should_change = (existing_fecalcal > new_fecalcal)  # for control, keep lower fecalcal
-
-            elif pd.isna(new_fecalcal):
-                continue
-            else:
-                should_change = True  # existing is na, new is not na
-
-            if should_change:
-                new_age = sample_meta[age_label].iloc[0]
-                new_values = {
-                    'sample_id': sample_id,
-                    'fecalcal': new_fecalcal,
-                    'age': round(new_age) if not pd.isna(new_age) else existing_entry['age'].iloc[0],
-                    **{species:abundance for species, abundance in sample_data.items()}
-                }
-                processed_data.loc[processed_data['subject_id'] == subject_id, list(new_values.keys())] = list(new_values.values())
-
-            continue
+            continue  # already processed this subject
 
         phenotype = sample_meta['Study.Group'].iloc[0]
         if phenotype not in ['Control', 'CD', 'UC', 'nonIBD']:
@@ -99,15 +73,11 @@ def obtain_data(data, metadata, age_label):
         if sample_meta['Age.Units'].iloc[0] != 'Years':
             raise ValueError(f"Age units not in years for sample {sample_id}.")
 
-        new_row = {'sample_id': sample_id,
-                   'subject_id': subject_id,
-                   'fecalcal': sample_meta['fecalcal'].iloc[0] if 'fecalcal' in sample_meta else np.nan,
-                   'phenotype': phenotype,
-                   'age': round(age) if not pd.isna(age) else age}
+        new_row = {'sample_id': sample_id, 'subject_id': subject_id, 'phenotype': phenotype, 'age': round(age) if not pd.isna(age) else age}
         new_row.update({species:abundance for species, abundance in sample_data.items()})
         processed_data = pd.concat([processed_data, pd.DataFrame([new_row])], ignore_index=True)
 
-    processed_data.drop(columns=['subject_id', 'fecalcal'], errors='ignore', inplace=True)
+    processed_data.drop(columns=['subject_id'], errors='ignore', inplace=True)
     return processed_data
 
 
@@ -173,7 +143,6 @@ def main():
 
     # ===================================================
 
-    # Note: iHMP is longitudinal, so we only take one sample per subject (the first).
     ihmp_data = pd.read_csv(PATH_TO_iHMP_DATA, sep='\t')
     ihmp_meta = pd.read_csv(PATH_TO_iHMP_METADATA, sep='\t')
     franzosa_data = pd.read_csv(PATH_TO_FRANZOSA_DATA, sep='\t')
