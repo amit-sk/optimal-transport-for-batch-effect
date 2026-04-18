@@ -263,6 +263,17 @@ def show_variance(data, group_col_name, file_path=None, should_run_pcoa=True, sh
         Draw.run_pcoa(otu_data, data[group_col_name], pcoa_file_path, should_show_pcoa=should_show_pcoa, distance_matrix=distance_matrix, pcoa_pairs=pcoa_pairs, subtitle=subtitle)
 
 
+def _combine_dataset(dataset1, dataset2):
+    """
+    Combines two datasets by concatenating them and filling missing values with 0.0.
+    """
+    combined_data = pd.concat([dataset1, dataset2])
+    combined_data.fillna(0.0, inplace=True)
+    combined_data.set_index('sample_id', inplace=True)
+    return combined_data
+
+
+
 def main():
     os.makedirs(os.path.join('results', 'datasets'), exist_ok=True)
 
@@ -277,17 +288,26 @@ def main():
     show_variance(mucosalibd_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'mucosalibd_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
 
     # combined
+    risk_data_copy = risk_data.copy()
+    mucosalibd_data_copy = mucosalibd_data.copy()
+
     print("PERMANOVA between datasets:")
-    risk_data['dataset+phenotype'] = 'RISK_' + risk_data['phenotype']
-    mucosalibd_data['dataset+phenotype'] = 'MucosalIBD_' + mucosalibd_data['phenotype']
-    combined_data = pd.concat([risk_data, mucosalibd_data])
-    combined_data.fillna(0.0, inplace=True)
-    combined_data.set_index('sample_id', inplace=True)
+    risk_data_copy['dataset+phenotype'] = 'RISK_' + risk_data_copy['phenotype']
+    mucosalibd_data_copy['dataset+phenotype'] = 'MucosalIBD_' + mucosalibd_data_copy['phenotype']
+    combined_data = _combine_dataset(risk_data_copy, mucosalibd_data_copy)
+    show_variance(combined_data, 'dataset+phenotype', file_path=os.path.join('results', 'datasets', 'combined_risk_mucosalibd_by_dataset_and_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
 
     # # test only controls
     # combined_data = combined_data[combined_data['phenotype'] == 'control']
 
-    show_variance(combined_data, 'dataset+phenotype', file_path=os.path.join('results', 'datasets', 'combined_risk_mucosalibd_by_dataset_and_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
+    # test by dataset
+    risk_data_copy = risk_data.copy()
+    mucosalibd_data_copy = mucosalibd_data.copy()
+
+    risk_data_copy['dataset'] = 'RISK'
+    mucosalibd_data_copy['dataset'] = 'MucosalIBD'
+    combined_data = _combine_dataset(risk_data_copy, mucosalibd_data_copy)
+    show_variance(combined_data, 'dataset', file_path=os.path.join('results', 'datasets', 'combined_risk_mucosalibd_by_dataset'), should_run_pcoa=True, should_show_pcoa=True)
 
     # # test dataset and phenotype separately
     # show_variance(combined_data, 'dataset')
@@ -304,13 +324,22 @@ def main():
     show_variance(franzosa_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'franzosa_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
 
     # combined iHMP and FRANZOSA
+    ihmp_data_copy = ihmp_data.copy()
+    franzosa_data_copy = franzosa_data.copy()
+
     print("PERMANOVA between iHMP and FRANZOSA datasets:")
-    ihmp_data['dataset+phenotype'] = 'iHMP_' + ihmp_data['phenotype']
-    franzosa_data['dataset+phenotype'] = 'FRANZOSA_' + franzosa_data['phenotype']
-    combined_data = pd.concat([ihmp_data, franzosa_data])
-    combined_data.fillna(0.0, inplace=True)
-    combined_data.set_index('sample_id', inplace=True)
+    ihmp_data_copy['dataset+phenotype'] = 'iHMP_' + ihmp_data_copy['phenotype']
+    franzosa_data_copy['dataset+phenotype'] = 'FRANZOSA_' + franzosa_data_copy['phenotype']
+    combined_data = _combine_dataset(ihmp_data_copy, franzosa_data_copy)
     show_variance(combined_data, 'dataset+phenotype', file_path=os.path.join('results', 'datasets', 'combined_ihmp_franzosa_by_dataset_and_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
+
+    # test by dataset
+    ihmp_data_copy = ihmp_data.copy()
+    franzosa_data_copy = franzosa_data.copy()
+    ihmp_data_copy['dataset'] = 'iHMP'
+    franzosa_data_copy['dataset'] = 'FRANZOSA'
+    combined_data = _combine_dataset(ihmp_data_copy, franzosa_data_copy)
+    show_variance(combined_data, 'dataset', file_path=os.path.join('results', 'datasets', 'combined_ihmp_franzosa_by_dataset'), should_run_pcoa=True, should_show_pcoa=True)
 
     print("Done.")
 
