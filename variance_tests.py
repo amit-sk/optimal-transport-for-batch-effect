@@ -170,14 +170,23 @@ class Draw:
         ordination_results = pcoa(distance_matrix, seed=seed)
         mod = ordination_results.samples.iloc[:, :2].values
 
-        plt.figure(figsize=(10,8))
+        # plt.figure(figsize=(10,8))
+        plt.figure(figsize=(4, 3), dpi=200)
+        plt.rcParams.update({'font.size': 6})
+        plt.xticks([])
+        plt.yticks([])
 
-        colors = plt.get_cmap("tab10")
-        for group in np.unique(group_col):
+        groups = np.unique(group_col)
+        colors = ['#005461', "#7AD18E", '#AE2448', '#FA8721']
+        colors = [colors[0], colors[2]] if len(groups) == 2 else colors
+        # colors = plt.get_cmap(cmap)
+        # positions = np.linspace(0.2, 0.8, len(groups))  # avoid edges
+        for group in groups:
             idx = (group_col == group)
-            color = colors(np.unique(group_col).tolist().index(group) % 10)
+            group_idx = groups.tolist().index(group)
+            color = colors[group_idx % len(colors)]
             Draw.confidence_ellipse(mod[idx, 0], mod[idx, 1], plt.gca(), edgecolor='black', alpha=0.2, facecolor=color)
-            plt.scatter(mod[idx, 0], mod[idx, 1], label=group, alpha=0.75, color=color)
+            plt.scatter(mod[idx, 0], mod[idx, 1], label=group, alpha=0.75, color=color, s=10)
 
         if pcoa_pairs is not None:
             for i, j in pcoa_pairs:
@@ -185,9 +194,9 @@ class Draw:
 
         plt.legend(title=group_col.name)
         plt.suptitle("PCoA of OTU Relative Abundance")
-        plt.title(subtitle, fontsize=10)
+        plt.title(subtitle, fontsize=6)
         if file_path is not None:
-            plt.savefig(file_path, dpi=500)
+            plt.savefig(file_path)#, dpi=500)
         if should_show_pcoa:
             plt.show()
         plt.close()
