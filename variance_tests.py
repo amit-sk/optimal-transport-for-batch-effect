@@ -243,7 +243,7 @@ class Draw:
         """
         Based on code from Guy Shur's thesis.
         """
-        fig = subplots.make_subplots(cols=2, print_grid=False, vertical_spacing=0.13, subplot_titles=["Before transport", "After transport"], x_title='Dataset Mix %', y_title='-log(p-value)')
+        fig = subplots.make_subplots(cols=2, print_grid=False, horizontal_spacing=0.07, subplot_titles=["Before transport", "After transport"], x_title='Dataset Mix %', y_title='-log(p-value)')
         fig.update_annotations(font={'size': 28})
         fig.update_layout(font={'size': 22})
         Draw._draw_titration_internal(fig, [titration_results_before, titration_results_after])
@@ -253,7 +253,9 @@ class Draw:
         """
         Based on code from Guy Shur's thesis.
         """
-        fig = subplots.make_subplots(print_grid=False, vertical_spacing=0.13)
+        fig = subplots.make_subplots(print_grid=False, x_title='Dataset Mix %', y_title='-log(p-value)')
+        fig.update_annotations(font={'size': 28})
+        fig.update_layout(font={'size': 22})
         Draw._draw_titration_internal(fig, [titration_results])
         fig.write_image(png_name, height=600, width=800, scale=6, format='png')
 
