@@ -98,8 +98,8 @@ class OptimalTransportTest:
         with open(self._get_file_path('dataset_differentiation_test.txt'), 'w') as f:
             classifier_iterations = 20
 
-            print(f'\nTesting dataset differentiation using Random Forest Classifier (averaging {classifier_iterations} iterations)')
-            f.write(f'Testing dataset differentiation using Random Forest Classifier (averaging {classifier_iterations} iterations)\n')
+            print(f'\nTesting dataset differentiation using KNN Classifier (averaging {classifier_iterations} iterations)')
+            f.write(f'Testing dataset differentiation using KNN Classifier (averaging {classifier_iterations} iterations)\n')
 
             # show results on source \ target data before transport
             print('\nBefore transport')
