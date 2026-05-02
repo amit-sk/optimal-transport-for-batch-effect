@@ -23,7 +23,7 @@ def round_dataframe(digits, dataframe):
     return round_dataframes(digits, dataframe)[0]
 
 
-def get_sample_ids_by_dataset(combined_data: pd.DataFrame) -> dict:
+def get_sample_ids_by_phenotype_by_dataset(combined_data: pd.DataFrame) -> dict:
     """
     Based on code from Guy Shur's thesis (utils.py).
     """

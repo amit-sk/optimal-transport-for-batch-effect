@@ -63,9 +63,9 @@ class Metrics:
             return curr_pvals / repeats
 
         def _get_titration_results(combined_data, repeats, seed):
-            sample_ids = data_utils.get_sample_ids_by_dataset(combined_data)
+            sample_ids = data_utils.get_sample_ids_by_phenotype_by_dataset(combined_data)
             combined_otu_data = data_utils.round_dataframe(5, combined_data[data_utils.get_otu_columns(combined_data)]).to_numpy()
-            sample_id_to_index = {sid: i for i, sid in enumerate(combined_data.index)}
+            sample_id_to_index = {sid: index for index, sid in enumerate(combined_data.index)}
 
             datasets = list(sample_ids.keys())
             controls_1 = [sample_id_to_index[sid] for sid in sample_ids[datasets[0]]['control']]
@@ -79,7 +79,7 @@ class Metrics:
 
             for k in range(repeats):
                 print(f'titration iteration {k+1} of {repeats}')
-                import time
+                import time  # for logging
                 start = time.time()
 
                 random.seed(seed + k)
@@ -212,30 +212,40 @@ class Draw:
             medians = []
             for l in range(len(titration_results)):
                 curr_pvals = titration_results[l]
-                fig.add_trace(go.Scatter(x=[l for _ in curr_pvals], y=curr_pvals, mode='markers',
-                              marker=dict(opacity=0.2, color='DarkGrey', size=2, line=dict(color='Black', width=1))),
-                              col=i+1, row=row)
+                fig.add_trace(go.Scatter(x=[l for _ in curr_pvals],
+                                         y=curr_pvals,
+                                         mode='markers',
+                                         showlegend=False,
+                                         marker=dict(opacity=0.2,
+                                                     color='DarkGrey',
+                                                     size=2,
+                                                     line=dict(color='Black', width=1))),
+                              col=i+1,
+                              row=row)
 
                 means.append(np.mean(curr_pvals))
                 medians.append(np.median(curr_pvals))
                 x.append(l)
                 max_p_val = max(max_p_val, max(curr_pvals))
 
-            fig.add_trace(go.Scatter(x=x, y=means, mode='lines', marker=dict(color='Blue', size=2)), col=i+1, row=row)
-            fig.add_trace(go.Scatter(x=x, y=medians, mode='lines', marker=dict(color='Red', size=2)), col=i+1, row=row)
+            showlegend = (i == 0)  # only show legend for first subplot, to avoid duplicates
+            fig.add_trace(go.Scatter(x=x, y=means, mode='lines', name='Mean', marker=dict(color='Blue', size=2), showlegend=showlegend), col=i+1, row=row)
+            fig.add_trace(go.Scatter(x=x, y=medians, mode='lines', name='Median', marker=dict(color='Red', size=2), showlegend=showlegend), col=i+1, row=row)
 
         set_size = len(all_titration_results[0])  # they should all be the same size
         fig.update_xaxes(tickmode='array',
                          tickvals=[0, 0.25 * set_size, 0.5 * set_size, 0.75 * set_size, set_size],
                          ticktext=['0%', '50%', '100%', '50%', '0%'])
         fig.update_yaxes(range=[0, 1.05 * max_p_val])
-        fig.update_layout(showlegend=False)
+        fig.update_layout(showlegend=True)
 
     def draw_titration_results_before_and_after(titration_results_before, titration_results_after, png_name='titration.png'):
         """
         Based on code from Guy Shur's thesis.
         """
-        fig = subplots.make_subplots(cols=2, print_grid=False, vertical_spacing=0.13, subplot_titles=["Before transport", "After transport"])
+        fig = subplots.make_subplots(cols=2, print_grid=False, vertical_spacing=0.13, subplot_titles=["Before transport", "After transport"], x_title='Dataset Mix %', y_title='-log(p-value)')
+        fig.update_annotations(font={'size': 28})
+        fig.update_layout(font={'size': 22})
         Draw._draw_titration_internal(fig, [titration_results_before, titration_results_after])
         fig.write_image(png_name, height=600, width=1200, scale=6, format='png')
 
