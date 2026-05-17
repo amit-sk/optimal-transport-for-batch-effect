@@ -1,2 +1,2 @@
-coupling diagonal sum: 0.9886621315192746
-Average FOSCTTM score between projected and original (post transport): 5.726846167903408e-05
+coupling diagonal sum: 0.017006802721088437
+Average FOSCTTM score between projected and original (post transport): 0.344640315452704

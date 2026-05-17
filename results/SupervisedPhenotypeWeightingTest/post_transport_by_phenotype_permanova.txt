@@ -3,7 +3,7 @@ method name               PERMANOVA
 test statistic name        pseudo-F
 sample size                    1014
 number of groups                  2
-test statistic            20.483527
+test statistic            19.710263
 p-value                       0.001
 number of permutations          999
 Name: PERMANOVA results, dtype: object

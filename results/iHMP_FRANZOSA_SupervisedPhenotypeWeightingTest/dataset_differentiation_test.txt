@@ -4,4 +4,4 @@ Before transport:
 Classification by dataset before transport results - Accuracy: 0.859, AUC-ROC: 0.904
 
 After transport:
-Classification by dataset after transport results - Accuracy: 0.373, AUC-ROC: 0.372
+Classification by dataset after transport results - Accuracy: 0.443, AUC-ROC: 0.499

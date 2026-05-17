@@ -1,6 +1,6 @@
 Testing phenotype signal using Random Forest Classifier
 Source data before transport classification results - Accuracy: 0.752, AUC-ROC: 0.665
-Projection data after transport classification results - Accuracy: 0.562, AUC-ROC: 0.392
+Projection data after transport classification results - Accuracy: 0.638, AUC-ROC: 0.494
 
 Testing age signal using Random Forest Regressor (averaging 20 iterations)
 
@@ -9,5 +9,5 @@ MSE mean: 352.740 (std: 42.801)
 Pearson correlation mean: 0.145 (std: 0.102), p-value mean: 0.383 (std: 0.293)
 
 Projection data after transport age regression results:                  
-MSE mean: 379.324 (std: 47.965)                  
-Pearson correlation mean: -0.011 (std: 0.145), p-value mean: 0.483 (std: 0.246)
+MSE mean: 352.307 (std: 41.903)                  
+Pearson correlation mean: 0.183 (std: 0.120), p-value mean: 0.291 (std: 0.268)
