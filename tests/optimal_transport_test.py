@@ -152,7 +152,7 @@ class OptimalTransportTest:
         runs GW optimal transport from source to target dataset.
         """
         with open(self._get_file_path('transport_log.txt'), 'w') as f:
-            self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, verbose=False, log=True, **kwargs_for_ot)
+            self.coupling, log = ot.gromov.gromov_wasserstein(self.target_distance_matrix, self.source_distance_matrix, loss_fun='kl_loss', verbose=False, log=True, **kwargs_for_ot)
             self.gw_distance = log['gw_dist']
             print(f'GW distance: {self.gw_distance}')
             f.write(f'GW distance: {self.gw_distance}\n')
