@@ -178,7 +178,7 @@ class Draw:
 
         groups = np.unique(group_col)
         colors = ['#005461', "#7AD18E", '#AE2448', '#FA8721']
-        colors = [colors[1], colors[3]] if len(groups) == 2 else colors
+        colors = [colors[0], colors[2]] if len(groups) == 2 else colors
         # colors = plt.get_cmap(cmap)
         # positions = np.linspace(0.2, 0.8, len(groups))  # avoid edges
         for group in groups:
