@@ -6,8 +6,7 @@ from scipy.spatial import distance
 from scipy import stats
 from sklearn import metrics
 from sklearn import model_selection
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestRegressor
 
 import optimal_transport
 import variance_tests
@@ -105,7 +104,7 @@ class OptimalTransportTest:
             print('\nBefore transport')
             f.write('\nBefore transport:\n')
             combined_otu_data = combined_pre_transport[data_utils.get_otu_columns(combined_pre_transport)]
-            pre_transport_acc, pre_transport_auc_roc = self._run_dataset_classifier(combined_otu_data, combined_pre_transport['dataset'], iterations=classifier_iterations)
+            pre_transport_acc, pre_transport_auc_roc = variance_tests.Metrics.run_dataset_classifier(combined_otu_data, combined_pre_transport['dataset'], iterations=classifier_iterations)
             print(f"Classification by dataset before transport results - Accuracy: {np.mean(pre_transport_acc):.3f}, AUC-ROC: {np.mean(pre_transport_auc_roc):.3f}")
             f.write(f"Classification by dataset before transport results - Accuracy: {np.mean(pre_transport_acc):.3f}, AUC-ROC: {np.mean(pre_transport_auc_roc):.3f}\n")
             
@@ -113,30 +112,9 @@ class OptimalTransportTest:
             print('\nAfter transport:')
             f.write('\nAfter transport:\n')
             combined_otu_data = combined_post_transport[data_utils.get_otu_columns(combined_post_transport)]
-            post_transport_acc, post_transport_auc_roc = self._run_dataset_classifier(combined_otu_data, combined_post_transport['dataset'], iterations=classifier_iterations)
+            post_transport_acc, post_transport_auc_roc = variance_tests.Metrics.run_dataset_classifier(combined_otu_data, combined_post_transport['dataset'], iterations=classifier_iterations)
             print(f"Classification by dataset after transport results - Accuracy: {np.mean(post_transport_acc):.3f}, AUC-ROC: {np.mean(post_transport_auc_roc):.3f}")
             f.write(f"Classification by dataset after transport results - Accuracy: {np.mean(post_transport_acc):.3f}, AUC-ROC: {np.mean(post_transport_auc_roc):.3f}\n")
-
-    def _run_dataset_classifier(self, data, dataset_labels, iterations=30):
-        classifier = KNeighborsClassifier()
-        acc_list = []
-        auc_roc_list = []
-        for i in range(iterations):
-            train_data, test_data, train_dataset_labels, test_dataset_labels = model_selection.train_test_split(
-                data, dataset_labels, test_size=0.3, random_state=data_utils.PROJECT_SEED + i
-            )
-            classifier.fit(train_data, train_dataset_labels)
-
-            true_label = dataset_labels.iloc[0]  # get one of the dataset labels, the other will be "false" i.e. 0.
-            pred = classifier.predict(test_data)
-            acc = (pred == test_dataset_labels).mean()
-            probability_scores = classifier.predict_proba(test_data)[:, classifier.classes_ == true_label]
-            auc_roc = metrics.roc_auc_score((test_dataset_labels == true_label).astype(int), probability_scores)
-
-            acc_list.append(acc)
-            auc_roc_list.append(auc_roc)
-
-        return acc_list, auc_roc_list
 
     def _get_projected(self):
         self.projected_otu_data = optimal_transport.barycentric_projection(self.coupling, self.target_otu_data, x_onto_y=False)
@@ -176,38 +154,25 @@ class OptimalTransportTest:
             print('\nTesting phenotype signal using Random Forest Classifier')
             f.write('Testing phenotype signal using Random Forest Classifier\n')
 
-            source_data = source_dataset[data_utils.get_otu_columns(source_dataset)]
-            source_phenotype = source_dataset['phenotype']
-            source_age = source_dataset['age']
-            target_data = target_dataset[data_utils.get_otu_columns(target_dataset)]
-            target_phenotype = target_dataset['phenotype']
-            target_age = target_dataset['age']
-            projection_data = projection[data_utils.get_otu_columns(projection)]
-            projection_phenotype = projection['phenotype']
-            projection_age = projection['age']
-
-            classifier = RandomForestClassifier(random_state=data_utils.PROJECT_SEED)
-            classifier.fit(target_data, target_phenotype)
+            source_acc, source_auc_roc = variance_tests.Metrics.RF_classify(target_dataset, source_dataset, 'phenotype')
+            projection_acc, projection_auc_roc = variance_tests.Metrics.RF_classify(target_dataset, projection, 'phenotype')
 
             # show results on source data before transport
-            source_pred = classifier.predict(source_data)
-            source_acc = (source_pred == source_phenotype).mean()
-            source_probability_scores = classifier.predict_proba(source_data)[:, classifier.classes_ == 'CD']
-            source_auc_roc = metrics.roc_auc_score((source_phenotype == 'CD').astype(int), source_probability_scores)
             print(f"Source data before transport classification results - Accuracy: {source_acc:.3f}, AUC-ROC: {source_auc_roc:.3f}")
             f.write(f"Source data before transport classification results - Accuracy: {source_acc:.3f}, AUC-ROC: {source_auc_roc:.3f}\n")
             
             # show results on projection data after transport
-            projection_pred = classifier.predict(projection_data)
-            projection_acc = (projection_pred == projection_phenotype).mean()
-            projection_probability_scores = classifier.predict_proba(projection_data)[:, classifier.classes_ == 'CD']
-            projection_auc_roc = metrics.roc_auc_score((projection_phenotype == 'CD').astype(int), projection_probability_scores)
             print(f"Projection data after transport classification results - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}")
             f.write(f"Projection data after transport classification results - Accuracy: {projection_acc:.3f}, AUC-ROC: {projection_auc_roc:.3f}\n")
 
             regressor_iterations = 20
             print(f"\nTesting age signal using Random Forest Regressor (averaging {regressor_iterations} iterations)")
             f.write(f"\nTesting age signal using Random Forest Regressor (averaging {regressor_iterations} iterations)\n")
+
+            source_data = source_dataset[data_utils.get_otu_columns(source_dataset)]
+            source_age = source_dataset['age']
+            projection_data = projection[data_utils.get_otu_columns(projection)]
+            projection_age = projection['age']
 
             source_mse, source_corr = self._run_regressor(source_data, source_age, iterations=regressor_iterations)
             corr_values = [c[0] for c in source_corr]

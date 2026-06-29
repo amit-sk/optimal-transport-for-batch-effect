@@ -1,0 +1,2 @@
+Testing phenotypic signal in iHMP dataset using Random Forest Classifier
+Classification results - Accuracy: 0.688, AUC-ROC: 0.720
