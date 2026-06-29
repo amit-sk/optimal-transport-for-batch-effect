@@ -11,6 +11,10 @@ from scipy.stats import ranksums
 from skbio.diversity import beta_diversity
 from skbio.stats.distance import permanova
 from skbio.stats.ordination import pcoa
+from sklearn import model_selection
+from sklearn import metrics
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 import data_utils
 
@@ -56,6 +60,7 @@ class Metrics:
         """
         Based on code from Guy Shur's thesis.
         """
+        return
         def _compute_pvals_from_testing_set(combined_otu_data, testing_set, half_set_size):
             curr_pvals = [ranksums(combined_otu_data[testing_set[:half_set_size], otu], combined_otu_data[testing_set[half_set_size:], otu])[1]
                           for otu in range(combined_otu_data.shape[1])]
@@ -116,6 +121,53 @@ class Metrics:
         Draw.draw_titration_results_before_and_after(titration_results_before, titration_results_after, png_name)
         print(f"titration results saved in {png_name}")
 
+    @staticmethod
+    def RF_classify(train_dataset, test_dataset, label, seed=data_utils.PROJECT_SEED):
+        """
+        test the ability of a random forest classifier to classify samples based on their OTU relative abundance.
+        returns the accuracy and AUC ROC of the classifier on the test set.
+        """
+        train_data = train_dataset[data_utils.get_otu_columns(train_dataset)]
+        train_phenotype = train_dataset[label]
+        test_data = test_dataset[data_utils.get_otu_columns(test_dataset)]
+        test_phenotype = test_dataset[label]
+
+        classifier = RandomForestClassifier(random_state=seed)
+        classifier.fit(train_data, train_phenotype)
+
+        label0 = classifier.classes_[0]
+        pred = classifier.predict(test_data)
+        acc = (pred == test_phenotype).mean()
+        probability_scores = classifier.predict_proba(test_data)[:, classifier.classes_ == label0]
+        auc_roc = metrics.roc_auc_score((test_phenotype == label0).astype(int), probability_scores)
+        return acc, auc_roc
+    
+    @staticmethod
+    def run_dataset_classifier(data, dataset_labels, iterations=30, seed=data_utils.PROJECT_SEED):
+        """
+        Runs a KNN classifier to classify samples based on their OTU relative abundance, using the dataset labels as the target.
+        Returns the accuracy and AUC ROC of the classifier on the test set, averaged over the specified number of iterations.
+        The seed is used to shuffle the data before each iteration, and is incremented by 1 for each iteration.
+        """
+        classifier = KNeighborsClassifier()
+        acc_list = []
+        auc_roc_list = []
+        for i in range(iterations):
+            train_data, test_data, train_dataset_labels, test_dataset_labels = model_selection.train_test_split(
+                data, dataset_labels, test_size=0.3, random_state=seed + i
+            )
+            classifier.fit(train_data, train_dataset_labels)
+
+            true_label = dataset_labels.iloc[0]  # get one of the dataset labels, the other will be "false" i.e. 0.
+            pred = classifier.predict(test_data)
+            acc = (pred == test_dataset_labels).mean()
+            probability_scores = classifier.predict_proba(test_data)[:, classifier.classes_ == true_label]
+            auc_roc = metrics.roc_auc_score((test_dataset_labels == true_label).astype(int), probability_scores)
+
+            acc_list.append(acc)
+            auc_roc_list.append(auc_roc)
+
+        return acc_list, auc_roc_list
 
 class Draw:
     def heatmap(data, row_labels, col_labels, **kwargs):
@@ -273,20 +325,30 @@ def _combine_dataset(dataset1, dataset2):
     return combined_data
 
 
+def _report_phenotypic_signal_in_dataset(dataset, dataset_name, file_path, seed=data_utils.PROJECT_SEED):
+    with open(file_path, 'w') as f:
+        train_dataset, test_dataset = model_selection.train_test_split(dataset, test_size=0.3, random_state=seed)
+        acc, auc_roc = Metrics.RF_classify(train_dataset, test_dataset, 'phenotype')
+        f.write(f'Testing phenotypic signal in {dataset_name} dataset using Random Forest Classifier\n')
+        f.write(f'Classification results - Accuracy: {acc:.3f}, AUC-ROC: {auc_roc:.3f}\n')
+
 
 def main():
+    np.random.seed(data_utils.PROJECT_SEED)
     os.makedirs(os.path.join('results', 'datasets'), exist_ok=True)
 
     # risk data
     print("RISK data:")
     risk_data = pd.read_csv("risk_data.csv")
     show_variance(risk_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'risk_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
+    _report_phenotypic_signal_in_dataset(risk_data, 'RISK', os.path.join('results', 'datasets', 'risk_phenotypic_signal.txt'))
+
 
     # mucosalibd data
     print("MucosalIBD data:")
     mucosalibd_data = pd.read_csv("mucosalibd_data.csv")
     show_variance(mucosalibd_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'mucosalibd_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
-
+    _report_phenotypic_signal_in_dataset(mucosalibd_data, 'MucosalIBD', os.path.join('results', 'datasets', 'mucosalibd_phenotypic_signal.txt'))
     # combined
     risk_data_copy = risk_data.copy()
     mucosalibd_data_copy = mucosalibd_data.copy()
@@ -317,11 +379,13 @@ def main():
     print("iHMP data:")
     ihmp_data = pd.read_csv("ihmp_data.csv")
     show_variance(ihmp_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'ihmp_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
+    _report_phenotypic_signal_in_dataset(ihmp_data, 'iHMP', os.path.join('results', 'datasets', 'ihmp_phenotypic_signal.txt'))
 
     # FRANZOSA data
     print("FRANZOSA data:")
     franzosa_data = pd.read_csv("franzosa_data.csv")
     show_variance(franzosa_data, 'phenotype', file_path=os.path.join('results', 'datasets', 'franzosa_by_phenotype'), should_run_pcoa=True, should_show_pcoa=True)
+    _report_phenotypic_signal_in_dataset(franzosa_data, 'FRANZOSA', os.path.join('results', 'datasets', 'franzosa_phenotypic_signal.txt'))
 
     # combined iHMP and FRANZOSA
     ihmp_data_copy = ihmp_data.copy()
