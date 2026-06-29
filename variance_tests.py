@@ -60,7 +60,6 @@ class Metrics:
         """
         Based on code from Guy Shur's thesis.
         """
-        return
         def _compute_pvals_from_testing_set(combined_otu_data, testing_set, half_set_size):
             curr_pvals = [ranksums(combined_otu_data[testing_set[:half_set_size], otu], combined_otu_data[testing_set[half_set_size:], otu])[1]
                           for otu in range(combined_otu_data.shape[1])]
